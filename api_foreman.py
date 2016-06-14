@@ -12,7 +12,7 @@ def connectToHost(host, host_user, host_pwd):
     api = Foreman(apiurl, (host_user, host_pwd), api_version=2)
     return api
 
-def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organization, guest_location, guest_mac_address, guest_subnet, guest_build='false'):
+def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organization, guest_location, guest_mac_address, guest_subnet, guest_environment, guest_build='false'):
     guest_hostgroup_id = getHostgroupId(api, guest_hostgroup)
     if guest_hostgroup_id == 0:
         print "Hostgroup '%s' not found. Cannot continue" % guest_hostgroup
@@ -33,13 +33,17 @@ def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organizati
     if guest_subnet_id == 0:
         print "Subnet '%s' not found. Cannot continue" % guest_subnet
         sys.exit(1)
+    guest_environment_id = getEnvironmentId(api, guest_environment)
+    if guest_environment_id == 0:
+        print "Environment '%s' not found. Cannot continue" % guest_environment
+        sys.exit(1)
 
     # Kan middels python api geen organizations ophalen. Kan wel handmatig: http://<foreman_url>/api/organizations
 #    guest={'name': guest_name, 'mac': guest_mac_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id}
     try:
 #        api.hosts.create(host=guest)
         hosts = api.hosts.index()['results']
-        api.hosts.create(host={'name': guest_name, 'mac': guest_mac_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id})
+        api.hosts.create(host={'name': guest_name, 'mac': guest_mac_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id, 'environment_id': guest_environment_id})
         result = "Succesfully created guest: " + guest_name
     except Exception as e:
         result = 'Failed to create hoest in Foreman: %s' % str(e)
@@ -101,3 +105,13 @@ def getSubnetId(api, subnetName):
         else:
             subnetId = 0
     return subnetId
+
+def getEnvironmentId(api, environmentName):
+    environments = api.index_environments()['results']
+    for environment in environments:
+        if environment['name'] == environmentName:
+            environmentId = environment['id']
+            break
+        else:
+            environmentId = 0
+    return environmentId

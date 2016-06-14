@@ -72,7 +72,7 @@ def createVMs(vm_list):
         vm_mac = api_ovirt.getMac(ovirt_conn, guest_name)
         print "   - Found MAC: %s" % vm_mac
         print " - Create host in foreman"
-        result = api_foreman.createGuest(foreman_conn, guest_name, vm_info['foreman_hostgroup'], vm_info['domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], 'true')
+        result = api_foreman.createGuest(foreman_conn, guest_name, vm_info['foreman_hostgroup'], vm_info['domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], 'true')
         if result != "Succesfully created guest: " + guest_name:
             print result
             print "Finished unsuccesfully, aborting"
