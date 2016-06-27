@@ -1,15 +1,16 @@
 #name of the vm
-[kibana03]
+[servername]
 #Domain for host
-domain = core.cmc.lan
+domain = localdomain
 #Cluster for host
 cluster = LAB-Cluster
 #hostname of the oVirt hypervisor (of manager)
-hypervisor = poc-ovirtm1.infoplus-ot.ris
+hypervisor = ovirtm01.localdomain
 #username to connect to the oVirt-host (user@domain)
 hypervisor_user = admin@internal
+hypervisor_password = password
 #storage domain name
-datastore = poc-datastore1
+datastore = eva-datastore01
 #memory for the guest in MB
 memory = 2048
 #number of virtual CPU's
@@ -17,16 +18,17 @@ cpus = 1
 #disk space in GB
 disksize = 32
 #purpose of the guest (description)
-purpose = VM to test kibana puppet module
+purpose = VM to test something
 #network to assign
 network = vlan-1013
 
 #hostname of Foreman
-foreman = katello.core.cmc.lan
+foreman = katello.localdomain
 #username to connect to the Foreman
 foreman_user = admin
+foreman_password = password
 #hostgroup in foreman
-foreman_hostgroup = CentOS7 Minimal Monitoring
+foreman_hostgroup = CentOS7 Minimal
 #Organization in foreman
 foreman_organization = CMC
 #Location in foreman
@@ -34,6 +36,6 @@ foreman_location = Core1
 #Subnet in foreman
 foreman_subnet = CMC Core1 Monitoring
 #Puppet environment
-puppet_environment = puppetdev_fabian
+puppet_environment = develop
 
-server_role = role::kibana::server
+server_role = role::<product>::server
