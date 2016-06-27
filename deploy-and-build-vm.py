@@ -21,7 +21,9 @@ import api_foreman
 from kazoo.client import KazooClient #Zookeeper client class
 import kazoo #Zookeeper class
 import ConfigParser
+import collections #to order dict by key
 
+vm_config = None
 zk_base_path = '/puppet'
 
 class Config:
@@ -41,12 +43,13 @@ class Config:
         for section in sections:
             vm_list[section] = {}
             try:
-                vm_list[section]['domain'] = self.config.get(section, 'domain')
+                vm_list[section]['vm_domain'] = self.config.get(section, 'vm_domain')
             except:
                 print "No domain provided. Assuming default of 'localdomain'"
-                vm_list[section]['domain'] = 'localdomain'
+                vm_list[section]['vm_domain'] = 'localdomain'
+            vm_list[section]['vm_fqdn'] = section + '.' + vm_list[section]['vm_domain']
             try:
-                vm_list[section]['cluster'] = self.config.get(section, 'cluster')
+                vm_list[section]['vm_cluster'] = self.config.get(section, 'vm_cluster')
             except:
                 print "No cluster parameter provided. Cannot continue"
                 sys.exit(99)
@@ -66,31 +69,31 @@ class Config:
                 print "No hypervisor password provided. Please provide one:"
                 vm_list[section]['hypervisor_password'] = getpass.getpass("  enter password for hypervisor " + vm_list[section]['hypervisor'] + " and user " + vm_list[section]['hypervisor_user'] + " to continue: ")
             try:
-                vm_list[section]['datastore'] = self.config.get(section, 'datastore')
+                vm_list[section]['vm_datastore'] = self.config.get(section, 'vm_datastore')
             except:
                 print "No datastore provided. Cannot continue"
                 sys.exit(99)
             try:
-                vm_list[section]['memory'] = self.config.get(section, 'memory')
+                vm_list[section]['vm_memory'] = self.config.get(section, 'vm_memory')
             except:
                 print "No memory provided. Assumning default of 512 MB"
-                vm_list[section]['memory'] = 512
+                vm_list[section]['vm_memory'] = 512
             try:
-                vm_list[section]['cpus'] = self.config.get(section, 'cpus')
+                vm_list[section]['vm_cpus'] = self.config.get(section, 'vm_cpus')
             except:
                 print "No number of cpu's provided. Assuming default of 1"
-                vm_list[section]['cpus'] = 1
+                vm_list[section]['vm_cpus'] = 1
             try:
-                vm_list[section]['disksize'] = self.config.get(section, 'disksize')
+                vm_list[section]['vm_disks'] = self.config.get(section, 'vm_disks').split(',')
             except:
-                print "No disksize provided. Assuming default of 16 GB"
-                vm_list[section]['disksize'] = 16
+                print "No disks provided. Assuming single disk of 16 GB"
+                vm_list[section]['vm_disks'] = ['16']
             try:
-                vm_list[section]['purpose'] = self.config.get(section, 'purpose')
+                vm_list[section]['vm_purpose'] = self.config.get(section, 'vm_purpose')
             except:
-                vm_list[section]['purpose'] = ''
+                vm_list[section]['vm_purpose'] = ''
             try:
-                vm_list[section]['network'] = self.config.get(section, 'network')
+                vm_list[section]['vm_network'] = self.config.get(section, 'vm_network')
             except:
                 print "No VLAN provided. You can still access the VM, but only through the console."
             try:
@@ -127,52 +130,58 @@ class Config:
             except:
                 print "No foreman subnet provided. You can still access the VM, but only through the concole"
             try:
+                vm_list[section]['foreman_ptable'] = self.config.get(section, 'foreman_ptable')
+            except:
+                print "No foreman partition table provided. Assuming default 'Kickstart default'"
+                vm_list[section]['foreman_ptable'] = 'Kickstart default'
+            try:
                 vm_list[section]['puppet_environment'] = self.config.get(section, 'puppet_environment')
             except:
                 print "No puppet environment provided. Assuming default of 'production'"
                 vm_list[section]['puppet_environment'] = 'production'
             try:
-                vm_list[section]['server_role'] = self.config.get(section, 'server_role')
+                vm_list[section]['puppet_server_role'] = self.config.get(section, 'puppet_server_role')
             except:
                 print "No server role provided. The base role will be the only one applied to this server"
-                vm_list[section]['server_role'] = ''
+                vm_list[section]['puppet_server_role'] = ''
             self.vm_list = vm_list
 
-def createRoleZookeeper(node_name, puppet_environment, server_role):
+def createRoleZookeeper(node_name, puppet_environment, puppet_server_role):
     zk_path = zk_base_path + '/' + puppet_environment + '/nodes/' + node_name + '/roles'
     zk = kazoo.client.KazooClient(hosts='zookeeper01.core.cmc.lan:2181')
     zk.start()
     zk.ensure_path(zk_path)
-    zk.set(zk_path, server_role.encode())
+    zk.set(zk_path, puppet_server_role.encode())
     zk.stop()
     zk.close()
 
-def createVMs(vm_list):
-    for vm in vm_list:
-        vm_info = vm_list[vm]
-        guest_name = vm
+def createVMs():
+    for vm in vm_config.vm_list:
+        vm_info = vm_config.vm_list[vm]
 
         print " - Connect to hypervisor"
         ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
         print " - Connect to Foreman"
         foreman_conn = api_foreman.Foreman('http://'+vm_info["foreman"], (vm_info["foreman_user"], vm_info['foreman_password']), api_version = 2)
 
-        print "*" * sum((12, len(guest_name)))
-        print "***** " + guest_name + " *****"
-        print "*" * sum((12, len(guest_name)))
+        print "*" * sum((12, len(vm_info['vm_fqdn'])))
+        print "***** " + vm_info['vm_fqdn'] + " *****"
+        print "*" * sum((12, len(vm_info['vm_fqdn'])))
 
         print " - Create VM on hypervisor"
         print "   - hypervisor:", vm_info["hypervisor"]
-        print "   - datastore:", vm_info["datastore"]
-        print "   - name:", guest_name
-        print "   - domain:", vm_info['domain']
-        print "   - #cpu:", vm_info["cpus"]
-        print "   - memory:", vm_info["memory"],"MB"
-        print "   - diskspace:", vm_info["disksize"],"GB"
-        print "   - vlan:", vm_info['network']
+        print "   - datastore:", vm_info["vm_datastore"]
+        print "   - name:", vm_info['vm_fqdn']
+        print "   - domain:", vm_info['vm_domain']
+        print "   - #cpu:", vm_info["vm_cpus"]
+        print "   - memory:", vm_info["vm_memory"],"MB"
+        print "   - disks:"
+        for disk in vm_info["vm_disks"]:
+            print "     - " + disk + "GB"
+        print "   - vlan:", vm_info['vm_network']
         print ""
-        result = api_ovirt.createGuest(ovirt_conn, vm_info["cluster"], guest_name + '.' + vm_info['domain'], vm_info["purpose"], int(vm_info["memory"]), int(vm_info["cpus"]), int(vm_info["disksize"]), vm_info["datastore"], vm_info["network"])
-        if result != "Succesfully created guest: " + guest_name + '.' + vm_info['domain']:
+        result = api_ovirt.createGuest(ovirt_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_network"])
+        if result != "Succesfully created guest: " + vm_info['vm_fqdn']:
             print result
             print "Finished unsuccesfully, aborting"
             ovirt_conn.disconnect()
@@ -180,7 +189,7 @@ def createVMs(vm_list):
         print " -", result
 
         print " - Retrieve MAC address to pass to foreman"
-        vm_mac = api_ovirt.getMac(ovirt_conn, guest_name + '.' + vm_info['domain'])
+        vm_mac = api_ovirt.getMac(ovirt_conn, vm_info['vm_fqdn'])
         print "   - Found MAC: %s" % vm_mac
         print " - Create host in foreman"
         print "   - foreman:", vm_info['foreman']
@@ -190,21 +199,23 @@ def createVMs(vm_list):
         print "   - subnet:", vm_info['foreman_subnet']
         print "   - puppet environment:", vm_info['puppet_environment']
         print ""
-        result = api_foreman.createGuest(foreman_conn, guest_name, vm_info['foreman_hostgroup'], vm_info['domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], 'true')
-        if result != "Succesfully created guest: " + guest_name:
+        result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true')
+        if result != "Succesfully created guest: " + vm:
             print result
             print "Finished unsuccesfully, aborting"
             sys.exit(99)
         print " -", result
         print " - Creating role in Zookeeper"
-        print "   - server role:", vm_info['server_role']
-        createRoleZookeeper(guest_name + '.' + vm_info['domain'], vm_info['puppet_environment'], vm_info['server_role'])
-        print " - Starting VM %s" % guest_name
-        api_ovirt.powerOnGuest(ovirt_conn, guest_name + '.' + vm_info['domain'])
+        print "   - server role:", vm_info['puppet_server_role']
+        createRoleZookeeper(vm_info['vm_fqdn'], vm_info['puppet_environment'], vm_info['puppet_server_role'])
+        print " - Starting VM %s" % vm_info['vm_fqdn']
+        api_ovirt.powerOnGuest(ovirt_conn, vm_info['vm_fqdn'])
     print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
 
 def main():
+    global vm_config
+
     #file to read
     if len(sys.argv) == 2:
         fname = sys.argv[1]
@@ -213,13 +224,23 @@ def main():
         sys.exit(99)
     vm_config = Config(fname)
     vm_config.parse()
-#    vm_list = vm_config.vm_list
-#    for vm in vm_list:
-#        print vm
-#        print vm_list[vm]['foreman']
-#    sys.exit(1)
-
-    createVMs(vm_config.vm_list)
+    print "These VM's will be created:"
+    for vm in vm_config.vm_list:
+        print '- ' + vm
+        for key, value in collections.OrderedDict(sorted(vm_config.vm_list[vm].items())).items():
+            if not isinstance(value, list):
+                print '\t- %s: %s' % (key, value)
+            else:
+                print '\t- %s:' % key
+                for v in value:
+                    print '\t\t- %s' % v
+    print "Is this correct? (y/n)"
+    answer = raw_input().lower()
+    if answer == 'y':
+        os.system('clear')
+        createVMs()
+    else:
+        sys.exit(0)
 
 if __name__ == '__main__':
     main()
