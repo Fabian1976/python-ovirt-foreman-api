@@ -18,6 +18,10 @@ import crypt
 import getpass
 import api_ovirt
 import api_foreman
+from kazoo.client import KazooClient #Zookeeper client class
+import kazoo #Zookeeper class
+
+zk_base_path = '/puppet'
 
 def readVMs(fname):
     #read contents of input file and put it in dict
@@ -31,10 +35,19 @@ def readVMs(fname):
                 guest_name = line[1:-1]
                 vm_list[guest_name] = {}
             else:
-                key, value = line.split(":")
+                key, value = line.split("=")
                 vm_list[guest_name][key.strip()] = value.strip()
     f.close()
     return vm_list
+
+def createRoleZookeeper(node_name, puppet_environment, server_role):
+    zk_path = zk_base_path + '/' + puppet_environment + '/nodes/' + node_name + '/roles'
+    zk = kazoo.client.KazooClient(hosts='zookeeper01.core.cmc.lan:2181')
+    zk.start()
+    zk.ensure_path(zk_path)
+    zk.set(zk_path, server_role.encode())
+    zk.stop()
+    zk.close()
 
 def createVMs(vm_list):
     for vm in vm_list:
@@ -60,8 +73,8 @@ def createVMs(vm_list):
         print "   - memory:", vm_info["memory"],"MB"
         print "   - diskspace:", vm_info["disksize"],"GB"
 
-        result = api_ovirt.createGuest(ovirt_conn, vm_info["cluster"], guest_name, vm_info["purpose"], int(vm_info["memory"]), int(vm_info["cpus"]), int(vm_info["disksize"]), vm_info["datastore"], vm_info["network"])
-        if result != "Succesfully created guest: " + guest_name:
+        result = api_ovirt.createGuest(ovirt_conn, vm_info["cluster"], guest_name + '.' + vm_info['domain'], vm_info["purpose"], int(vm_info["memory"]), int(vm_info["cpus"]), int(vm_info["disksize"]), vm_info["datastore"], vm_info["network"])
+        if result != "Succesfully created guest: " + guest_name + '.' + vm_info['domain']:
             print result
             print "Finished unsuccesfully, aborting"
             ovirt_conn.disconnect()
@@ -69,7 +82,7 @@ def createVMs(vm_list):
         print " -", result
 
         print " - Retrieve MAC address to pass to foreman"
-        vm_mac = api_ovirt.getMac(ovirt_conn, guest_name)
+        vm_mac = api_ovirt.getMac(ovirt_conn, guest_name + '.' + vm_info['domain'])
         print "   - Found MAC: %s" % vm_mac
         print " - Create host in foreman"
         result = api_foreman.createGuest(foreman_conn, guest_name, vm_info['foreman_hostgroup'], vm_info['domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], 'true')
@@ -78,8 +91,10 @@ def createVMs(vm_list):
             print "Finished unsuccesfully, aborting"
             sys.exit(99)
         print " -", result
+        print " - Creating role in Zookeeper"
+        createRoleZookeeper(guest_name + '.' + vm_info['domain'], vm_info['puppet_environment'], vm_info['server_role'])
         print " - Starting VM %s" % guest_name
-        api_ovirt.powerOnGuest(ovirt_conn, guest_name)
+        api_ovirt.powerOnGuest(ovirt_conn, guest_name + '.' + vm_info['domain'])
     print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
 
@@ -94,4 +109,4 @@ def main():
     createVMs(vm_list)
 
 if __name__ == '__main__':
-        main()
+    main()
