@@ -91,16 +91,16 @@ def write_dsc_files(vm_list):
         print "$Hostname = '%s'" % vm
         print "$vDC = '%s'" % vm.split('-')[0]
         print "$MAC = '%s'" % api_ovirt.getMac(ovirt_conn, vm)
-        print "$IP = '192.168.20.174'"
-        print "$Role = 'IIS'"
+        print "$IP = '%s'" % vm_info['ipaddress']
+        print "$Role = '%s'" % vm_info['role'].upper()
         print "$OTAP = 'P'"
         print "$PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=puppetmaster01.core.cmc.lan PUPPET_AGENT_ENVIRONMENT=%s'" % vm_info["puppet_environment"]
         f = open('/mnt/dsc/' + vm + '.start', "w")
         f.write("$Hostname = '%s'\r\n" % vm)
         f.write("$vDC = '%s'\r\n" % vm.split('-')[0])
         f.write("$MAC = '%s'\r\n" % api_ovirt.getMac(ovirt_conn, vm))
-        f.write("$IP = '192.168.20.174'\r\n")
-        f.write("$Role = 'IIS'\r\n")
+        f.write("$IP = '%s'\r\n" % vm_info['ipaddress'])
+        f.write("$Role = '%s'\r\n" % vm_info['role'].upper())
         f.write("$OTAP = 'P'\r\n")
         f.write("$PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=puppetmaster01.core.cmc.lan PUPPET_AGENT_ENVIRONMENT=%s'\r\n" % vm_info["puppet_environment"])
         f.close()
