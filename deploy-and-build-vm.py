@@ -239,9 +239,24 @@ def createVMs():
             f.write("$OTAP = 'P'\r\n")
             f.write("$PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=puppetmaster01.core.cmc.lan PUPPET_AGENT_ENVIRONMENT=%s'\r\n" % vm_info["puppet_environment"])
             f.close()
+            print " - Waiting for .done file to appear when WDS is done"
+            while not os.path.exists('/mnt/dsc/' + vm + '.done'):
+                time.sleep(2)
+                print "   - '/mnt/dsc/%s.done' still not there" % vm
+    print " - Disconnect from hypervisor"
+    ovirt_conn.disconnect()
+    #set PXEboot for hosts
+    for vm in vm_config.vm_list:
+        vm_info = vm_config.vm_list[vm]
+        ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+        api_ovirt.setPXEBoot(ovirt_conn, vm_info['vm_fqdn'])
+    ovirt_conn.disconnect()
+    #start hosts
+    for vm in vm_config.vm_list:
+        vm_info = vm_config.vm_list[vm]
+        ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
         print " - Starting VM %s" % vm_info['vm_fqdn']
         api_ovirt.powerOnGuest(ovirt_conn, vm_info['vm_fqdn'])
-    print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
 
 def main():
