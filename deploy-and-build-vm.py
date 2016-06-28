@@ -162,7 +162,7 @@ def createVMs():
         print " - Connect to hypervisor"
         ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
         print " - Connect to Foreman"
-        foreman_conn = api_foreman.Foreman('http://'+vm_info["foreman"], (vm_info["foreman_user"], vm_info['foreman_password']), api_version = 2)
+        foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], vm_info['foreman_password'])
 
         print "*" * sum((12, len(vm_info['vm_fqdn'])))
         print "***** " + vm_info['vm_fqdn'] + " *****"
