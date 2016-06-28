@@ -43,6 +43,11 @@ class Config:
         for section in sections:
             vm_list[section] = {}
             try:
+                vm_list[section]['osfamily'] = self.config.get(section, 'osfamily').lower()
+            except:
+                print "No osfamily specified (linux or windows). Cannot continue"
+                sys.exit(99)
+            try:
                 vm_list[section]['vm_domain'] = self.config.get(section, 'vm_domain')
             except:
                 print "No domain provided. Assuming default of 'localdomain'"
@@ -96,6 +101,12 @@ class Config:
                 vm_list[section]['vm_network'] = self.config.get(section, 'vm_network')
             except:
                 print "No VLAN provided. You can still access the VM, but only through the console."
+            try:
+                vm_list[section]['vm_ipaddress'] = self.config.get(section, 'vm_ipaddress')
+            except:
+                if vm_list[section]['osfamily'] == 'windows':
+                    print "No ipaddress specified. Windows provisioning currently needs an IP address. Cannot continue"
+                    sys.exit(99)
             try:
                 vm_list[section]['foreman'] = self.config.get(section, 'foreman')
             except:
@@ -161,8 +172,6 @@ def createVMs():
 
         print " - Connect to hypervisor"
         ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
-        print " - Connect to Foreman"
-        foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], vm_info['foreman_password'])
 
         print "*" * sum((12, len(vm_info['vm_fqdn'])))
         print "***** " + vm_info['vm_fqdn'] + " *****"
@@ -191,23 +200,45 @@ def createVMs():
         print " - Retrieve MAC address to pass to foreman"
         vm_mac = api_ovirt.getMac(ovirt_conn, vm_info['vm_fqdn'])
         print "   - Found MAC: %s" % vm_mac
-        print " - Create host in foreman"
-        print "   - foreman:", vm_info['foreman']
-        print "   - hostgroup:", vm_info['foreman_hostgroup']
-        print "   - organization:", vm_info['foreman_organization']
-        print "   - location:", vm_info['foreman_location']
-        print "   - subnet:", vm_info['foreman_subnet']
-        print "   - puppet environment:", vm_info['puppet_environment']
-        print ""
-        result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true')
-        if result != "Succesfully created guest: " + vm:
-            print result
-            print "Finished unsuccesfully, aborting"
-            sys.exit(99)
-        print " -", result
-        print " - Creating role in Zookeeper"
-        print "   - server role:", vm_info['puppet_server_role']
-        createRoleZookeeper(vm_info['vm_fqdn'], vm_info['puppet_environment'], vm_info['puppet_server_role'])
+        if vm_info['osfamily'] == 'linux':
+            print " - Connect to Foreman"
+            foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], vm_info['foreman_password'])
+            print " - Create host in foreman"
+            print "   - foreman:", vm_info['foreman']
+            print "   - hostgroup:", vm_info['foreman_hostgroup']
+            print "   - organization:", vm_info['foreman_organization']
+            print "   - location:", vm_info['foreman_location']
+            print "   - subnet:", vm_info['foreman_subnet']
+            print "   - puppet environment:", vm_info['puppet_environment']
+            print ""
+            result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true')
+            if result != "Succesfully created guest: " + vm:
+                print result
+                print "Finished unsuccesfully, aborting"
+                sys.exit(99)
+            print " -", result
+            print " - Creating role in Zookeeper"
+            print "   - server role:", vm_info['puppet_server_role']
+            createRoleZookeeper(vm_info['vm_fqdn'], vm_info['puppet_environment'], vm_info['puppet_server_role'])
+        elif vm_info['osfamily'] == 'windows':
+            print " - Writing file to WDS pickup location"
+            print "   - $Hostname = '%s'" % vm
+            print "   - $vDC = '%s'" % vm.split('-')[0]
+            print "   - $MAC = '%s'" % vm_mac
+            print "   - $IP = '%s'" % vm_info['vm_ipaddress']
+            print "   - $Role = '%s'" % vm_info['puppet_server_role'].upper()
+            print "   - $OTAP = 'P'"
+            print "   - $PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=puppetmaster01.core.cmc.lan PUPPET_AGENT_ENVIRONMENT=%s'" % vm_info["puppet_environment"]
+            f = open('/mnt/dsc/' + vm + '.start', "w")
+#            f = open('./' + vm + '.start', "w")
+            f.write("$Hostname = '%s'\r\n" % vm)
+            f.write("$vDC = '%s'\r\n" % vm.split('-')[0])
+            f.write("$MAC = '%s'\r\n" % vm_mac)
+            f.write("$IP = '%s'\r\n" % vm_info['vm_ipaddress'])
+            f.write("$Role = '%s'\r\n" % vm_info['puppet_server_role'].upper())
+            f.write("$OTAP = 'P'\r\n")
+            f.write("$PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=puppetmaster01.core.cmc.lan PUPPET_AGENT_ENVIRONMENT=%s'\r\n" % vm_info["puppet_environment"])
+            f.close()
         print " - Starting VM %s" % vm_info['vm_fqdn']
         api_ovirt.powerOnGuest(ovirt_conn, vm_info['vm_fqdn'])
     print " - Disconnect from hypervisor"
