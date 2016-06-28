@@ -46,6 +46,13 @@ def createGuest(api,guest_cluster,guest_name,guest_description,guest_mem,guest_c
 def getMac(api,guest_name):
     return api.vms.get(guest_name).nics.get("eth0").mac.address
 
+def setPXEBoot(api, guest_name):
+    vm = api.vms.get(name=guest_name)
+    hd_boot_dev = params.Boot(dev='hd')
+    net_boot_dev = params.Boot(dev='network')
+    vm.os.set_boot([hd_boot_dev, net_boot_dev])
+    vm.update()
+
 def powerOnGuest(api,guest_name):
     try:
         if api.vms.get(guest_name).status.state != 'up':
