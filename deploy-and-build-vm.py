@@ -90,6 +90,7 @@ class Config:
                 vm_list[section]['vm_cpus'] = 1
             try:
                 vm_list[section]['vm_disks'] = self.config.get(section, 'vm_disks').split(',')
+                vm_list[section]['vm_disks'] = [disk.strip() for disk in vm_list[section]['vm_disks']]
             except:
                 print "No disks provided. Assuming single disk of 16 GB"
                 vm_list[section]['vm_disks'] = ['16']
@@ -98,7 +99,8 @@ class Config:
             except:
                 vm_list[section]['vm_purpose'] = ''
             try:
-                vm_list[section]['vm_network'] = self.config.get(section, 'vm_network')
+                vm_list[section]['vm_networks'] = self.config.get(section, 'vm_networks').split(',')
+                vm_list[section]['vm_networks'] = [network.strip() for network in vm_list[section]['vm_networks']]
             except:
                 print "No VLAN provided. You can still access the VM, but only through the console."
             try:
@@ -187,9 +189,11 @@ def createVMs():
         print "   - disks:"
         for disk in vm_info["vm_disks"]:
             print "     - " + disk + "GB"
-        print "   - vlan:", vm_info['vm_network']
+        print "   - vlans:"
+        for network in vm_info['vm_networks']:
+            print "     - " + network
         print ""
-        result = api_ovirt.createGuest(ovirt_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_network"])
+        result = api_ovirt.createGuest(ovirt_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
         if result != "Succesfully created guest: " + vm_info['vm_fqdn']:
             print result
             print "Finished unsuccesfully, aborting"

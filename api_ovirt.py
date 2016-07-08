@@ -16,12 +16,13 @@ def connectToHost(host,host_user,host_pw):
     api = API(url=apiurl,username=host_user,password=host_pw,insecure=True)
     return api
 
-def createGuest(api,guest_cluster,guest_name,guest_description,guest_mem,guest_cpu,guest_disks_gb,guest_domain,guest_network):
+def createGuest(api,guest_cluster,guest_name,guest_description,guest_mem,guest_cpu,guest_disks_gb,guest_domain,guest_networks):
     cpu_params = params.CPU(topology=params.CpuTopology(cores=guest_cpu))
     try:
         api.vms.add(params.VM(name=guest_name,memory=guest_mem*1024*1024,cluster=api.clusters.get(guest_cluster),template=api.templates.get('Blank'),cpu=cpu_params,type_="server",description=guest_description))
 
-        api.vms.get(guest_name).nics.add(params.NIC(name='eth0', network=params.Network(name=guest_network), interface='virtio'))
+        for ethnum in range(len(guest_networks)):
+            api.vms.get(guest_name).nics.add(params.NIC(name='eth'+str(ethnum), network=params.Network(name=guest_networks[ethnum]), interface='virtio'))
 
         #create bootdisk. First disk is allways bootdisk
         api.vms.get(guest_name).disks.add(params.Disk(storage_domains=params.StorageDomains(storage_domain=[api.storagedomains.get(guest_domain)]),size=int(guest_disks_gb[0])*1024*1024*1024,status=None,interface='virtio',format='cow',sparse=True,bootable=True))
