@@ -1,0 +1,19 @@
+[common]
+#ask for confirmation?
+unattended = 0
+
+#name of the vm
+[hostname]
+#Domain for host
+vm_domain = localdomain
+#hostname of the oVirt hypervisor (of manager)
+hypervisor = hypervisor.localdomain
+#username to connect to the oVirt-host (user@domain)
+hypervisor_user = admin@internal
+hypervisor_password = password
+
+#hostname of Foreman
+foreman = katello.localdomain
+#username to connect to the Foreman
+foreman_user = admin
+foreman_password = password

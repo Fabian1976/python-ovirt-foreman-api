@@ -49,8 +49,19 @@ def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organizati
         api.hosts.create(host={'name': guest_name, 'mac': guest_mac_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id, 'environment_id': guest_environment_id, 'ptable_id': guest_ptable_id})
         result = "Succesfully created guest: " + guest_name
     except Exception as e:
-        result = 'Failed to create hoest in Foreman: %s' % str(e)
+        result = "Failed to create host '%s' in Foreman.\n%s" % (guest_name, str(e))
+    return result
 
+def destroyGuest(api, guest_name):
+    guest_host_id = getHostId(api, guest_name)
+    if guest_host_id == 0:
+        print "Host '%s' not found. Cannot continue" % guest_name
+        sys.exit(1)
+    try:
+        api.hosts.destroy(guest_host_id)
+        result = "Succesfully removed guest: " + guest_name
+    except Exception as e:
+        result = "Failed to remove host '%s' in Foreman.\n%s" % (guest_name, str(e))
     return result
 
 def getHostgroupId(api, hostgroupName):
@@ -128,3 +139,13 @@ def getPtableId(api, ptableName):
         else:
             ptableId = 0
     return ptableId
+
+def getHostId(api, hostName):
+    hosts = api.index_hosts(search=hostName)['results']
+    for host in hosts:
+        if host['name'] == hostName:
+            hostId = host['id']
+            break
+        else:
+            hostId = 0
+    return hostId
