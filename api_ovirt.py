@@ -57,7 +57,7 @@ def setPXEBoot(api, guest_name):
 def powerOnGuest(api,guest_name):
     try:
         if api.vms.get(guest_name).status.state != 'up':
-            print 'Starting VM'
+            print 'Starting VM: %s' % guest_name
             api.vms.get(guest_name).start()
             print 'Waiting for VM to reach Up status'
             while api.vms.get(guest_name).status.state != 'up':
@@ -65,4 +65,35 @@ def powerOnGuest(api,guest_name):
         else:
             print 'VM already up'
     except Exception as e:
-        print 'Failed to Start VM:\n%s' % str(e)
+        print 'Failed to Start VM: %s\n%s' % (guest_name, str(e))
+
+def powerOffGuest(api,guest_name):
+    try:
+        if api.vms.get(guest_name).status.state != 'down':
+            print 'Stopping VM: %s' % guest_name
+            api.vms.get(guest_name).stop()
+            print 'Waiting for VM to reach Down status'
+            while api.vms.get(guest_name).status.state != 'down':
+                sleep(1)
+        else:
+            print 'VM already down'
+    except Exception as e:
+        print 'Failed to Stop VM: %s\n%s' % (guest_name, str(e))
+
+def revertToSnapshot(api, guest_name, snapshot_name, boot_after_restore):
+    guest_snapshots = api.vms.get(guest_name).snapshots.list()
+    try:
+        for snapshot in guest_snapshots:
+            if snapshot.get_description() == snapshot_name:
+                print "Snapshot %s found" % snapshot_name
+                powerOffGuest(api, guest_name)
+                print "Restoring snapshot"
+                snapshot.restore()
+                print "Reactivating NIC(s)"
+                guest_nics = api.vms.get(guest_name).nics.list()
+                for nic in guest_nics:
+                    nic.activate()
+                if boot_after_restore == '1':
+                    powerOnGuest(api, guest_name)
+    except Exception as e:
+        print "Failed to revert snapshot '%s' on VM: %s\n%s" % (snapshot_name, guest_name, str(e))
