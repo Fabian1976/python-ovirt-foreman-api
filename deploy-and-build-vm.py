@@ -103,6 +103,7 @@ class Config:
                 vm_list[section]['vm_networks'] = [network.strip() for network in vm_list[section]['vm_networks']]
             except:
                 print "No VLAN provided. You can still access the VM, but only through the console."
+                vm_list[section]['vm_networks'] = []
             try:
                 vm_list[section]['vm_ipaddress'] = self.config.get(section, 'vm_ipaddress')
             except:
@@ -221,9 +222,10 @@ def createVMs():
                 print "Finished unsuccesfully, aborting"
                 sys.exit(99)
             print " -", result
-            print " - Creating role in Zookeeper"
-            print "   - server role:", vm_info['puppet_server_role']
-            createRoleZookeeper(vm_info['vm_fqdn'], vm_info['puppet_environment'], vm_info['puppet_server_role'])
+            if vm_info['puppet_server_role'] != '':
+                print " - Creating role in Zookeeper"
+                print "   - server role:", vm_info['puppet_server_role']
+                createRoleZookeeper(vm_info['vm_fqdn'], vm_info['puppet_environment'], vm_info['puppet_server_role'])
         elif vm_info['osfamily'] == 'windows':
             print " - Writing file to WDS pickup location"
             print "   - $Hostname = '%s'" % vm
