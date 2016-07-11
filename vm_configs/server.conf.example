@@ -1,26 +1,27 @@
 #name of the vm
 [servername]
+osfamily = Linux
 #Domain for host
-domain = localdomain
+vm_domain = localdomain
 #Cluster for host
-cluster = LAB-Cluster
+vm_cluster = LAB-Cluster
 #hostname of the oVirt hypervisor (of manager)
 hypervisor = ovirtm01.localdomain
 #username to connect to the oVirt-host (user@domain)
 hypervisor_user = admin@internal
 hypervisor_password = password
 #storage domain name
-datastore = eva-datastore01
+vm_datastore = eva-datastore01
 #memory for the guest in MB
-memory = 2048
+vm_memory = 2048
 #number of virtual CPU's
-cpus = 1
+vm_cpus = 1
 #disk space in GB
-disksize = 32
+vm_disks = 32,64
 #purpose of the guest (description)
-purpose = VM to test something
+vm_purpose = VM to test something
 #network to assign
-network = vlan-1013
+vm_networks = vlan-1013
 
 #hostname of Foreman
 foreman = katello.localdomain
@@ -35,7 +36,9 @@ foreman_organization = CMC
 foreman_location = Core1
 #Subnet in foreman
 foreman_subnet = CMC Core1 Monitoring
+#Partition layout
+foreman_ptable = Kickstart default
 #Puppet environment
 puppet_environment = develop
-
+#puppet server rol
 server_role = role::<product>::server
