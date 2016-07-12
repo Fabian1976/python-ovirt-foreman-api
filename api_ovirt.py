@@ -99,6 +99,7 @@ def revertToSnapshot(api, guest_name, snapshot_name, boot_after_restore):
         print "Failed to revert snapshot '%s' on VM: %s\n%s" % (snapshot_name, guest_name, str(e))
 
 def destroyGuest(api, guest_name):
+    powerOffGuest(api, guest_name)
     try:
         api.vms.get(guest_name).delete()
         print 'Waiting for VM to be deleted'
