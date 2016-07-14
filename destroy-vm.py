@@ -1,4 +1,9 @@
 #!/usr/bin/python
+#TODO
+# ossec key uit zookeeper verwijderen
+# role uit zookeeper verwijderen
+# certificaat van pupeptmaster verwijderen
+
 import sys
 import os
 import getpass
