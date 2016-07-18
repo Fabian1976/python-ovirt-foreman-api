@@ -1,8 +1,4 @@
 #!/usr/bin/python
-#TODO
-# ossec key uit zookeeper verwijderen
-# role uit zookeeper verwijderen
-# certificaat van pupeptmaster verwijderen
 
 import sys
 import os
@@ -16,75 +12,25 @@ import string
 import random
 import crypt
 import getpass
-import api_ovirt
-import api_foreman
 from kazoo.client import KazooClient #Zookeeper client class
 import kazoo #Zookeeper class
-import ConfigParser
 import collections #to order dict by key
+import puppet #REST API for puppetserver
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/lib')
+import api_ovirt
+import api_foreman
 
 vm_config = None
 zk_base_path = '/puppet'
+from config import Config
 
-class Config:
-    def __init__(self, conf_file):
-        self.conf_file = conf_file
-        self.vm_list = {}
-        if not os.path.exists(self.conf_file):
-            print "Can't open config file '%s'" % self.conf_file
-            sys.exit(1)
-
-        self.config = ConfigParser.ConfigParser()
-        self.config.read(self.conf_file)
-
-    def parse(self):
-        sections = self.config.sections()
-        vm_list = {}
-        for section in sections:
-            if section == 'common':
-                try:
-                    self.unattended = self.config.get(section, 'unattended')
-                except:
-                    print 'Run unattended not specified. Assuming NO'
-                    self.unattended = '0'
-            else:
-                vm_list[section] = {}
-                try:
-                    vm_list[section]['vm_domain'] = self.config.get(section, 'vm_domain')
-                except:
-                    print "No domain provided. Assuming default of 'localdomain'"
-                    vm_list[section]['vm_domain'] = 'localdomain'
-                vm_list[section]['vm_fqdn'] = section + '.' + vm_list[section]['vm_domain']
-                try:
-                    vm_list[section]['hypervisor'] = self.config.get(section, 'hypervisor')
-                except:
-                    print "No hypervisor provided. Cannot continue"
-                    sys.exit(99)
-                try:
-                    vm_list[section]['hypervisor_user'] = self.config.get(section, 'hypervisor_user')
-                except:
-                    print "No user specified for hypervisor access. Cannot continue"
-                    sys.exit(99)
-                try:
-                    vm_list[section]['hypervisor_password'] = self.config.get(section, 'hypervisor_password')
-                except:
-                    print "No hypervisor password provided. Please provide one:"
-                    vm_list[section]['hypervisor_password'] = getpass.getpass("  enter password for hypervisor " + vm_list[section]['hypervisor'] + " and user " + vm_list[section]['hypervisor_user'] + " to continue: ")
-                try:
-                    vm_list[section]['foreman'] = self.config.get(section, 'foreman')
-                except:
-                    print "No foreman host provided. Cannot continue"
-                    sys.exit(99)
-                try:
-                    vm_list[section]['foreman_user'] = self.config.get(section, 'foreman_user')
-                except:
-                    print "No foreman user provided. Cannot continue"
-                try:
-                    vm_list[section]['foreman_password'] = self.config.get(section, 'foreman_password')
-                except:
-                    print "No foreman password provided. Please provide one:"
-                    vm_list[section]['foreman_password'] = getpass.getpass("  enter password for foreman " + vm_list[section]['foreman'] + " and user " + vm_list[section]['foreman_user'] + " to continue: ")
-                self.vm_list = vm_list
+def deleteZookeeperPath(path, recursive=False):
+    zk = kazoo.client.KazooClient(hosts=vm_config.zookeeper_address + ':' + vm_config.zookeeper_port)
+    zk.start()
+    zk.delete(path, recursive=recursive)
+    zk.stop()
+    zk.close()
 
 def destroyVMs():
     for vm in vm_config.vm_list:
@@ -113,6 +59,14 @@ def destroyVMs():
             print "Finished unsuccesfully, aborting"
             sys.exit(99)
         print " -", result
+        print " - Connect to Puppetmaster"
+        puppet_conn = puppet.Puppet(host='puppetmaster01.core.cmc.lan', port=8140, key_file='./ssl/api-key.pem', cert_file='./ssl/api-cert.pem')
+        print "   - Clear certificate of %s" % vm_info['vm_fqdn']
+        puppet_conn.certificate_clean(vm_info['vm_fqdn'])
+        print " - Delete zookeeper ossec auth"
+        deleteZookeeperPath(zk_base_path + '/production/nodes/192.168.10.133/client-keys/' + vm_info['vm_fqdn'], recursive=True)
+        print " - Delete zookeeper puppet node"
+        deleteZookeeperPath(zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn'], recursive=True)
     print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
 
