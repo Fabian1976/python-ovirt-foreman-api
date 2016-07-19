@@ -27,7 +27,7 @@ vm_memory = 2048
 #number of virtual CPU's
 vm_cpus = 1
 #disk space in GB
-vm_disksize = 16,32
+vm_disks = 16,32
 #purpose of the guest (description)
 vm_purpose = VM to test something
 #network to assign
