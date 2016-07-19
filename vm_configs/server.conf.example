@@ -1,3 +1,13 @@
+[common]
+#ask for confirmation? (optional, defaults to 0)
+unattended = 1
+#Zookeeper address. Used to store puppet role information and to delete ossec auth details
+zookeeper_address = zookeeper.localdomain
+zookeeper_port = 2181
+#Pupeptmaster address. Used to clean certificates upon deletion
+puppetmaster_address = puppetmaster.localdomain
+puppetmaster_port = 8140
+
 #name of the vm
 [servername]
 osfamily = Linux
@@ -6,22 +16,28 @@ vm_domain = localdomain
 #Cluster for host
 vm_cluster = LAB-Cluster
 #hostname of the oVirt hypervisor (of manager)
-hypervisor = ovirtm01.localdomain
+hypervisor = ovirtm1.localdomain
 #username to connect to the oVirt-host (user@domain)
 hypervisor_user = admin@internal
 hypervisor_password = password
 #storage domain name
-vm_datastore = eva-datastore01
+vm_datastore = poc-datastore1
 #memory for the guest in MB
 vm_memory = 2048
 #number of virtual CPU's
 vm_cpus = 1
 #disk space in GB
-vm_disks = 32,64
+vm_disksize = 16,32
 #purpose of the guest (description)
 vm_purpose = VM to test something
 #network to assign
-vm_networks = vlan-1013
+vm_networks = vlan-1011
+#IP address (optional. Currently not needed for Linux VM's but mandatory for Windows VM's)
+#vm_ipaddress = 127.0.0.1
+#snapshot to restore (only used when restoring to a snapshot
+snapshot_to_restore = snapshot_name
+#must the server be booted up after snapshot restore? (only used when restoring to a snapshot
+boot_after_restore = 1
 
 #hostname of Foreman
 foreman = katello.localdomain
@@ -31,14 +47,15 @@ foreman_password = password
 #hostgroup in foreman
 foreman_hostgroup = CentOS7 Minimal
 #Organization in foreman
-foreman_organization = CMC
+foreman_organization = myorg
 #Location in foreman
-foreman_location = Core1
+foreman_location = mylocation1
 #Subnet in foreman
-foreman_subnet = CMC Core1 Monitoring
+foreman_subnet = LOCAL
 #Partition layout
 foreman_ptable = Kickstart default
-#Puppet environment
-puppet_environment = develop
-#puppet server rol
-server_role = role::<product>::server
+
+#Puppet environment (optional, defaults to production)
+puppet_environment = production
+#Puppet server role (optional)
+#puppet_server_role = role::kibana::server
