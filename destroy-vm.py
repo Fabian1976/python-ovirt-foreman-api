@@ -32,6 +32,14 @@ def deleteZookeeperPath(path, recursive=False):
     zk.stop()
     zk.close()
 
+def getZookeeperValue(path):
+    zk = kazoo.client.KazooClient(hosts=vm_config.zookeeper_address + ':' + vm_config.zookeeper_port)
+    zk.start()
+    value = zk.get(path)
+    zk.stop()
+    zk.close()
+    return value
+
 def destroyVMs():
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
@@ -63,9 +71,12 @@ def destroyVMs():
         puppet_conn = puppet.Puppet(host='puppetmaster01.core.cmc.lan', port=8140, key_file='./ssl/api-key.pem', cert_file='./ssl/api-cert.pem')
         print "   - Clear certificate of %s" % vm_info['vm_fqdn']
         puppet_conn.certificate_clean(vm_info['vm_fqdn'])
-        print " - Delete zookeeper ossec auth"
-        deleteZookeeperPath(zk_base_path + '/production/nodes/192.168.10.133/client-keys/' + vm_info['vm_fqdn'], recursive=True)
-        print " - Delete zookeeper puppet node"
+        print " - Zookeeper records"
+        print "   - Get ossec server IP"
+        ossecserver, nodeStats = getZookeeperValue(zk_base_path + '/' + vm_info['puppet_environment'] + '/defaults/profile::ossec::client::ossec_server')
+        print "   - Delete zookeeper ossec auth"
+        deleteZookeeperPath(zk_base_path + '/production/nodes/' + ossecserver + '/client-keys/' + vm_info['vm_fqdn'], recursive=True)
+        print "   - Delete zookeeper puppet node"
         deleteZookeeperPath(zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn'], recursive=True)
     print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
