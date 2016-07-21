@@ -12,14 +12,13 @@ import string
 import random
 import crypt
 import getpass
-from kazoo.client import KazooClient #Zookeeper client class
-import kazoo #Zookeeper class
 import collections #to order dict by key
 import puppet #REST API for puppetserver
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/lib')
 import api_ovirt
 import api_foreman
+import api_zookeeper
 
 vm_config = None
 zk_base_path = '/puppet'
@@ -71,15 +70,29 @@ def destroyVMs():
         puppet_conn = puppet.Puppet(host='puppetmaster01.core.cmc.lan', port=8140, key_file='./ssl/api-key.pem', cert_file='./ssl/api-cert.pem')
         print "   - Clear certificate of %s" % vm_info['vm_fqdn']
         puppet_conn.certificate_clean(vm_info['vm_fqdn'])
+        print " - Connect to zookeeper"
+        zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
         print " - Zookeeper records"
         print "   - Get ossec server IP"
-        ossecserver, nodeStats = getZookeeperValue(zk_base_path + '/' + vm_info['puppet_environment'] + '/defaults/profile::ossec::client::ossec_server')
+        ossecserver, nodeStats = api_zookeeper.getValue(zookeeper_conn, zk_base_path + '/' + vm_info['puppet_environment'] + '/defaults/profile::ossec::client::ossec_server')
         print "   - Delete zookeeper ossec auth"
-        deleteZookeeperPath(zk_base_path + '/production/nodes/' + ossecserver + '/client-keys/' + vm_info['vm_fqdn'], recursive=True)
+        zk_path = zk_base_path + '/production/nodes/' + ossecserver + '/client-keys/' + vm_info['vm_fqdn']
+        result = api_zookeeper.deleteValue(zookeeper_conn, zk_path, recursive=True)
+        if result != "Succesfully deleted path '%s'" % zk_path:
+            print result
+            print "Finished unsuccesfully, aborting"
+            sys.exit(99)
         print "   - Delete zookeeper puppet node"
-        deleteZookeeperPath(zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn'], recursive=True)
+        zk_path = zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn']
+        result = api_zookeeper.deleteValue(zookeeper_conn, zk_path, recursive=True)
+        if result != "Succesfully deleted path '%s'" % zk_path:
+            print result
+            print "Finished unsuccesfully, aborting"
+            sys.exit(99)
     print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
+    print " - Disconnect from zookeeper"
+    api_zookeeper.disconnect(zookeeper_conn)
 
 def main():
     global vm_config

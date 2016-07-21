@@ -16,27 +16,16 @@ import string
 import random
 import crypt
 import getpass
-from kazoo.client import KazooClient #Zookeeper client class
-import kazoo #Zookeeper class
-import ConfigParser
 import collections #to order dict by key
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/lib')
 import api_ovirt
 import api_foreman
+import api_zookeeper
 
 vm_config = None
 zk_base_path = '/puppet'
 from config import Config
-
-def createRoleZookeeper(node_name, puppet_environment, puppet_server_role):
-    zk_path = zk_base_path + '/' + puppet_environment + '/nodes/' + node_name + '/roles'
-    zk = kazoo.client.KazooClient(hosts='zookeeper01.core.cmc.lan:2181')
-    zk.start()
-    zk.ensure_path(zk_path)
-    zk.set(zk_path, puppet_server_role.encode())
-    zk.stop()
-    zk.close()
 
 def createVMs():
     for vm in vm_config.vm_list:
@@ -92,9 +81,17 @@ def createVMs():
                 sys.exit(99)
             print " -", result
             if vm_info['puppet_server_role'] != '':
+                print " - Connect to zookeeper"
+                zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
                 print " - Creating role in Zookeeper"
                 print "   - server role:", vm_info['puppet_server_role']
-                createRoleZookeeper(vm_info['vm_fqdn'], vm_info['puppet_environment'], vm_info['puppet_server_role'])
+                zk_path = zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn'] + '/roles'
+                result = api_zookeeper.storeValue(zookeeper_conn, zk_path, vm_info['puppet_server_role'])
+                if result != "Succesfully stored value '%s' at path '%s'" % (vm_info['puppet_server_role'], zk_path):
+                    print result
+                    print "Finished unsuccesfully, aborting"
+                    sys.exit(99)
+                print '   -', result
         elif vm_info['osfamily'] == 'windows':
             print " - Writing file to WDS pickup location"
             print "   - $Hostname = '%s'" % vm
@@ -120,6 +117,8 @@ def createVMs():
                 print "   - '/mnt/dsc/%s.done' still not there" % vm
     print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
+    print " - Disconnect from zookeeper"
+    api_zookeeper.disconnect(zookeeper_conn)
     #set PXEboot for hosts
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
