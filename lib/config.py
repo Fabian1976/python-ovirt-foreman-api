@@ -53,9 +53,12 @@ class Config:
                 try:
                     vm_list[section]['vm_domain'] = self.config.get(section, 'vm_domain')
                 except:
-                    print "No domain provided. Assuming default of 'localdomain'"
-                    vm_list[section]['vm_domain'] = 'localdomain'
-                vm_list[section]['vm_fqdn'] = section + '.' + vm_list[section]['vm_domain']
+                    print "No domain provided."
+                    vm_list[section]['vm_domain'] = ''
+                if vm_list[section]['vm_domain'] == '':
+                    vm_list[section]['vm_fqdn'] = section
+                else:
+                   vm_list[section]['vm_fqdn'] = section + '.' + vm_list[section]['vm_domain']
                 try:
                     vm_list[section]['vm_cluster'] = self.config.get(section, 'vm_cluster')
                 except:
