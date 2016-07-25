@@ -94,6 +94,9 @@ def revertToSnapshot(api, guest_name, snapshot_name, boot_after_restore):
                 for nic in guest_nics:
                     nic.activate()
                 if boot_after_restore == '1':
+                    print 'Waiting for VM to finish restoring'
+                    while api.vms.get(guest_name).status.state != 'down':
+                        sleep(1)
                     powerOnGuest(api, guest_name)
     except Exception as e:
         print "Failed to revert snapshot '%s' on VM: %s\n%s" % (snapshot_name, guest_name, str(e))
