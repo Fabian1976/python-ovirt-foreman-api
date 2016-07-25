@@ -27,6 +27,28 @@ vm_config = None
 zk_base_path = '/puppet'
 from config import Config
 
+def store_provisioning(zookeeper_conn):
+    for vm in vm_config.vm_list:
+        vm_info = vm_config.vm_list[vm]
+        api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/Infra/OS' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), vm_info['osfamily'])
+        if len(vm_info['vm_disks']) > 1:
+            disknum = 1
+            for disk in vm_info['vm_disks']:
+                api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/Infra/disk/%s' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn'], disknum), disk)
+                disknum += 1
+        else:
+            api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/Infra/disk' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), vm_info['vm_disks'][0])
+        api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/Infra/mem' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), vm_info['vm_memory'])
+        if len(vm_info['vm_networks']) > 1:
+            networknum = 1
+            for network in vm_info['vm_networks']:
+                api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/Infra/network/%s' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn'], networknum), network)
+                networknum += 1
+        else:
+            api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/Infra/network' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), vm_info['vm_networks'][0])
+        api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/DateInitialRequest' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), time.strftime("%d-%m-%Y %H:%M:%S"))
+        api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/CnfgMnmgmt/roles' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), vm_info['puppet_server_role'])
+
 def createVMs():
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
@@ -92,6 +114,7 @@ def createVMs():
                     print "Finished unsuccesfully, aborting"
                     sys.exit(99)
                 print '   -', result
+            store_provisioning(zookeeper_conn)
         elif vm_info['osfamily'] == 'windows':
             print " - Writing file to WDS pickup location"
             print "   - $Hostname = '%s'" % vm
