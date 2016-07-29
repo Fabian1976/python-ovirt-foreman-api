@@ -102,9 +102,9 @@ def createVMs():
                 print "Finished unsuccesfully, aborting"
                 sys.exit(99)
             print " -", result
+            zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
             if vm_info['puppet_server_role'] != '':
                 print " - Connect to zookeeper"
-                zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
                 print " - Creating role in Zookeeper"
                 print "   - server role:", vm_info['puppet_server_role']
                 zk_path = zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn'] + '/roles'
