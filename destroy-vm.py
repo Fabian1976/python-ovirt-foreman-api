@@ -69,7 +69,11 @@ def destroyVMs():
         print " - Connect to Puppetmaster"
         puppet_conn = puppet.Puppet(host='puppetmaster01.core.cmc.lan', port=8140, key_file='./ssl/api-key.pem', cert_file='./ssl/api-cert.pem')
         print "   - Clear certificate of %s" % vm_info['vm_fqdn']
-        puppet_conn.certificate_clean(vm_info['vm_fqdn'])
+        try:
+            puppet_conn.certificate_clean(vm_info['vm_fqdn'])
+        except:
+            #ignore if certificate doesn't exist
+            pass
         print " - Connect to zookeeper"
         zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
         print " - Zookeeper records"

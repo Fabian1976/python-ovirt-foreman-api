@@ -114,7 +114,10 @@ def createVMs():
                     print "Finished unsuccesfully, aborting"
                     sys.exit(99)
                 print '   -', result
+            print "   Storing provisioning info"
             store_provisioning(zookeeper_conn)
+            print " - Disconnect from zookeeper"
+            api_zookeeper.disconnect(zookeeper_conn)
         elif vm_info['osfamily'] == 'windows':
             print " - Writing file to WDS pickup location"
             print "   - $Hostname = '%s'" % vm
@@ -140,8 +143,6 @@ def createVMs():
                 print "   - '/mnt/dsc/%s.done' still not there" % vm
     print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
-    print " - Disconnect from zookeeper"
-    api_zookeeper.disconnect(zookeeper_conn)
     #set PXEboot for hosts
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
