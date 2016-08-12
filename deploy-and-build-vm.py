@@ -22,6 +22,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/lib')
 import api_ovirt
 import api_foreman
 import api_zookeeper
+import api_freeipa
 
 vm_config = None
 zk_base_path = '/puppet'
@@ -118,6 +119,11 @@ def createVMs():
             store_provisioning(zookeeper_conn)
             print " - Disconnect from zookeeper"
             api_zookeeper.disconnect(zookeeper_conn)
+            if vm_config.freeipa_address != '' and vm_config.freeipa_user != '' and vm_config.freeipa_password != '' and vm_info['ipa_hostgroup'] != '':
+                print " - Connect to freeipa server"
+                freeipa_conn = api_freeipa.connectToHost(vm_config.freeipa_address, vm_config.freeipa_user, vm_config.freeipa_password)
+                print "   - Registering host '%s' with hostgroup '%s'" % (vm_info['vm_fqdn'], vm_info['ipa_hostgroup'])
+                api_freeipa.add_host_hostgroup(freeipa_conn, vm_info['ipa_hostgroup'], vm_info['vm_fqdn'])
         elif vm_info['osfamily'] == 'windows':
             print " - Writing file to WDS pickup location"
             print "   - $Hostname = '%s'" % vm

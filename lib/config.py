@@ -43,6 +43,24 @@ class Config:
                 except:
                     print 'No puppetmaster port defined. Assuming default of 8140'
                     self.puppetmaster_port = '8140'
+                try:
+                    self.freeipa_address = self.config.get(section, 'freeipa_address')
+                except:
+                    print "No freeipa server defined. Will continue but cannot register the host in any additional hostgroups"
+                    self.freeipa_address = ''
+                    self.freeipa_user = ''
+                    self.freeipa_password = ''
+                if self.freeipa_address != '':
+                    try:
+                        self.freeipa_user = self.config.get(section, 'freeipa_user')
+                    except:
+                        print "No freeipa user specified. Will continue but cannot register the host in any additional hostgroups"
+                        self.freeipa_user = ''
+                    try:
+                        self.freeipa_password = self.config.get(section, 'freeipa_password')
+                    except:
+                        print "No freeipa password specified. Will continue but cannot register the host in any additional hostgroups"
+                        self.freeipa_password = ''
             else:
                 vm_list[section] = {}
                 try:
@@ -174,5 +192,10 @@ class Config:
                 except:
                     print "No server role provided. The base role will be the only one applied to this server"
                     vm_list[section]['puppet_server_role'] = ''
+                try:
+                    vm_list[section]['ipa_hostgroup'] = self.config.get(section, 'ipa_hostgroup')
+                except:
+                    print "No IPA hostgroup specified. Not adding host to any hostgroup"
+                    vm_list[section]['ipa_hostgroup'] = ''
                 self.vm_list = vm_list
 
