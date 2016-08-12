@@ -7,6 +7,8 @@ from time import sleep
 ovirt_host = 'poc-ovirtm1.infoplus-ot.ris'
 guest_name = 'puppetdev-remy01.core.cmc.lan'
 attach_to = 'puppetdev-remy02.core.cmc.lan'
+#guest_name = 'puppetdev-johnpaul01.core.cmc.lan'
+#attach_to = 'puppetdev-johnpaul02.core.cmc.lan'
 datastore = 'poc-datastore1'
 
 disks = {}
@@ -23,7 +25,7 @@ disk['size'] = '6'
 disks['recodg_001'] = disk
 disks['recodg_002'] = disk
 disk = {}
-disk['size'] = '1'
+disk['size'] = '4'
 disks['systemdg_001'] = disk
 disks['systemdg_002'] = disk
 disks['systemdg_003'] = disk
@@ -45,7 +47,7 @@ print "Activating disks"
 for disk in disks:
     print "Activating: %s" % disk
     api.vms.get(guest_name).disks.get(name=guest_name+'_'+disk).activate()
-print "Attaching disks to secondary VM: %s"
+print "Attaching disks to secondary VM: %s" % attach_to
 for disk in disks:
     print "Attaching disk '%s' to: %s" % (disk, attach_to)
     api.vms.get(attach_to).disks.add(params.Disk(id=api.disks.get(alias=guest_name+'_'+disk).id, active=True))
