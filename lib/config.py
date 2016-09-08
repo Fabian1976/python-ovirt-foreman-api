@@ -1,11 +1,13 @@
 #!/usr/bin/python
 import os
+import sys
 import ConfigParser
 
 class Config:
     def __init__(self, conf_file):
         self.conf_file = conf_file
         self.vm_list = {}
+        self.supported_hypervisors = ['vmware', 'ovirt', 'rhev']
         if not os.path.exists(self.conf_file):
             print "Can't open config file '%s'" % self.conf_file
             sys.exit(1)
@@ -87,6 +89,20 @@ class Config:
                 except:
                     print "No hypervisor provided. Cannot continue"
                     sys.exit(99)
+                try:
+                    vm_list[section]['hypervisor_type'] = self.config.get(section, 'hypervisor_type')
+                except:
+                    print "No hypervisor type provided. Cannot continue"
+                    sys.exit(99)
+                if vm_list[section]['hypervisor_type'].lower() not in self.supported_hypervisors:
+                    print "Unsupported hypervisor '%s'. Cannot continue" % vm_list[section]['hypervisor_type']
+                    sys.exit(99)
+                if vm_list[section]['hypervisor_type'].lower() == 'vmware':
+                    try:
+                        vm_list[section]['hypervisor_host'] = self.config.get(section, 'hypervisor_host')
+                    except:
+                        print "No hypervisor host provided. Cannot continue"
+                        sys.exit(99)
                 try:
                     vm_list[section]['hypervisor_user'] = self.config.get(section, 'hypervisor_user')
                 except:

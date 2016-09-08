@@ -15,9 +15,13 @@ osfamily = Linux
 vm_domain = localdomain
 #Cluster for host
 vm_cluster = LAB-Cluster
-#hostname of the oVirt hypervisor (of manager)
-hypervisor = ovirtm1.localdomain
-#username to connect to the oVirt-host (user@domain)
+#hostname of the hypervisor manager or vCenter host
+hypervisor = hypervisor.localdomain
+#type of hypervisor
+hypervisor_type = oVirt
+#in case of VMware. This is the ESX host on which the VM is deployed
+hypervisor_host = host-c06.mgmt.recon.man
+#username to connect with the hypervisor
 hypervisor_user = admin@internal
 hypervisor_password = password
 #storage domain name
