@@ -33,6 +33,7 @@ The scripts `revert-vm-to-snapshot.py` and `ovirt-list-vm.py` should function no
 
 The other scripts also need these packages:
 ```bash
+# pip install pysphere
 # pip install python-foreman
 # pip install kazoo
 # pip install https://github.com/daradib/pypuppet/archive/master.tar.gz
