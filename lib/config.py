@@ -175,6 +175,8 @@ class Config:
                     if vm_list[section]['osfamily'] == 'windows':
                         print "No ipaddress specified. Windows provisioning currently needs an IP address. Cannot continue"
                         sys.exit(99)
+                    else:
+                        vm_list[section]['vm_ipaddress'] = ''
                 try:
                     vm_list[section]['snapshot_to_restore'] = self.config.get(section, 'snapshot_to_restore')
                     vm_list[section]['can_restore'] = True
