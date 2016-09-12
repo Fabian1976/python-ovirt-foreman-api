@@ -24,7 +24,7 @@ Some scripts of this repo assume a specific environment:
 Not all scripts need the same packages to be installed.
 These steps are needed for all scripts to work:
 ```bash
-# yum install python-pip
+# yum install python-pip gcc python-devel libxml2-devel
 # pip install --upgrade pip
 # pip install ovirt-engine-sdk-python
 ```

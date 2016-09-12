@@ -21,6 +21,14 @@ hypervisor = hypervisor.localdomain
 hypervisor_type = oVirt
 #in case of VMware. This is the ESX host on which the VM is deployed
 hypervisor_host = host-c06.mgmt.recon.man
+#in case of VMware. Datacenter is needed
+vm_datacenter = Datacenter-D01
+#in case of VMware. A VMware version is needed
+hypervisor_version = vmx-08
+#in case of VMware. An os is optional
+vm_os = rhel6Guest
+#in case of VMware. An optional iso can be mounted
+#vm_iso = <blank.iso>
 #username to connect with the hypervisor
 hypervisor_user = admin@internal
 hypervisor_password = password

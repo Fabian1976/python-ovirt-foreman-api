@@ -12,7 +12,7 @@ def connectToHost(host, host_user, host_pwd):
     api = Foreman(apiurl, (host_user, host_pwd), api_version=2)
     return api
 
-def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organization, guest_location, guest_mac_address, guest_subnet, guest_environment, guest_ptable, guest_build='false'):
+def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organization, guest_location, guest_mac_address, guest_subnet, guest_environment, guest_ptable, guest_build='false', guest_ip_address = None):
     guest_hostgroup_id = getHostgroupId(api, guest_hostgroup)
     if guest_hostgroup_id == 0:
         print "Hostgroup '%s' not found. Cannot continue" % guest_hostgroup
@@ -46,7 +46,10 @@ def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organizati
     try:
 #        api.hosts.create(host=guest)
         hosts = api.hosts.index()['results']
-        api.hosts.create(host={'name': guest_name, 'mac': guest_mac_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id, 'environment_id': guest_environment_id, 'ptable_id': guest_ptable_id})
+        if guest_ip_address:
+            api.hosts.create(host={'name': guest_name, 'mac': guest_mac_address, 'ip': guest_ip_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id, 'environment_id': guest_environment_id, 'ptable_id': guest_ptable_id})
+        else:
+            api.hosts.create(host={'name': guest_name, 'mac': guest_mac_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id, 'environment_id': guest_environment_id, 'ptable_id': guest_ptable_id})
         result = "Succesfully created guest: " + guest_name
     except Exception as e:
         result = "Failed to create host '%s' in Foreman.\n%s" % (guest_name, str(e))

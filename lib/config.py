@@ -99,10 +99,35 @@ class Config:
                     sys.exit(99)
                 if vm_list[section]['hypervisor_type'].lower() == 'vmware':
                     try:
+                        vm_list[section]['vm_datacenter'] = self.config.get(section, 'vm_datacenter')
+                    except:
+                        print "No datacenter provided. Cannot continue"
+                        sys.exit(99)
+                    try:
+                        vm_list[section]['vm_datacenter_folder'] = self.config.get(section, 'vm_datacenter_folder')
+                    except:
+                        print "No datacenter folder provided. Assuming root folder of datacenter"
+                        vm_list[section]['vm_datacenter_folder'] = ''
+                    try:
                         vm_list[section]['hypervisor_host'] = self.config.get(section, 'hypervisor_host')
                     except:
                         print "No hypervisor host provided. Cannot continue"
                         sys.exit(99)
+                    try:
+                        vm_list[section]['hypervisor_version'] = self.config.get(section, 'hypervisor_version')
+                    except:
+                        print "No vmware-hypervisor version provided. Assuming version 8"
+                        vm_list[section]['hypervisor_version'] = 'vmx-08'
+                    try:
+                        vm_list[section]['vm_os'] = self.config.get(section, 'vm_os')
+                    except:
+                        print "No vm_os provided. Leaving option blank"
+                        vm_list[section]['vm_os'] = ''
+                    try:
+                        vm_list[section]['vm_iso'] = self.config.get(section, 'vm_iso')
+                    except:
+                        print "No vm_iso provided. Leaving option blank"
+                        vm_list[section]['vm_iso'] = ''
                 try:
                     vm_list[section]['hypervisor_user'] = self.config.get(section, 'hypervisor_user')
                 except:
@@ -198,6 +223,11 @@ class Config:
                 except:
                     print "No foreman partition table provided. Assuming default 'Kickstart default'"
                     vm_list[section]['foreman_ptable'] = 'Kickstart default'
+                try:
+                    vm_list[section]['startup_after_creation'] = int(self.config.get(section, 'startup_after_creation'))
+                except:
+                    print "No startup_after_creation provided. Assuming NO"
+                    vm_list[section]['startup_after_creation'] = 0
                 try:
                     vm_list[section]['puppet_environment'] = self.config.get(section, 'puppet_environment')
                 except:
