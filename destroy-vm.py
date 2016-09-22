@@ -71,7 +71,8 @@ def destroyVMs():
         print "   - Clear certificate of %s" % vm_info['vm_fqdn']
         try:
             puppet_conn.certificate_clean(vm_info['vm_fqdn'])
-        except:
+        except Exception as e:
+            print e
             #ignore if certificate doesn't exist
             pass
         print " - Connect to zookeeper"
