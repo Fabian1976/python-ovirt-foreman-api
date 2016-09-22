@@ -20,6 +20,7 @@ import collections #to order dict by key
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/lib')
 import api_ovirt
+import api_vmware
 import api_foreman
 import api_zookeeper
 import api_freeipa
@@ -55,7 +56,10 @@ def createVMs():
         vm_info = vm_config.vm_list[vm]
 
         print " - Connect to hypervisor"
-        ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+        else:
+            hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
 
         print "*" * sum((12, len(vm_info['vm_fqdn'])))
         print "***** " + vm_info['vm_fqdn'] + " *****"
@@ -63,6 +67,7 @@ def createVMs():
 
         print " - Create VM on hypervisor"
         print "   - hypervisor:", vm_info["hypervisor"]
+        print "   - hypervisor type:", vm_info['hypervisor_type']
         print "   - datastore:", vm_info["vm_datastore"]
         print "   - name:", vm_info['vm_fqdn']
         print "   - domain:", vm_info['vm_domain']
@@ -75,16 +80,22 @@ def createVMs():
         for network in vm_info['vm_networks']:
             print "     - " + network
         print ""
-        result = api_ovirt.createGuest(ovirt_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
+        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+            result = api_ovirt.createGuest(hypervisor_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
+        else:
+            result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_info['vm_fqdn'], vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'])
         if result != "Succesfully created guest: " + vm_info['vm_fqdn']:
             print result
             print "Finished unsuccesfully, aborting"
-            ovirt_conn.disconnect()
+            hypervisor_conn.disconnect()
             sys.exit(99)
         print " -", result
 
         print " - Retrieve MAC address to pass to foreman"
-        vm_mac = api_ovirt.getMac(ovirt_conn, vm_info['vm_fqdn'])
+        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+            vm_mac = api_ovirt.getMac(hypervisor_conn, vm_info['vm_fqdn'])
+        else:
+            vm_mac = api_vmware.getMac(hypervisor_conn, vm_info['vm_fqdn'])
         print "   - Found MAC: %s" % vm_mac
         if vm_info['osfamily'] == 'linux':
             print " - Connect to Foreman"
@@ -95,9 +106,14 @@ def createVMs():
             print "   - organization:", vm_info['foreman_organization']
             print "   - location:", vm_info['foreman_location']
             print "   - subnet:", vm_info['foreman_subnet']
+            if vm_info['vm_ipaddress']:
+                print "     - ipaddress:", vm_info['vm_ipaddress']
             print "   - puppet environment:", vm_info['puppet_environment']
             print ""
-            result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true')
+            if vm_info['vm_ipaddress']:
+                result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true', vm_info['vm_ipaddress'])
+            else:
+                result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true')
             if result != "Succesfully created guest: " + vm:
                 print result
                 print "Finished unsuccesfully, aborting"
@@ -148,20 +164,28 @@ def createVMs():
                 time.sleep(2)
                 print "   - '/mnt/dsc/%s.done' still not there" % vm
     print " - Disconnect from hypervisor"
-    ovirt_conn.disconnect()
+    hypervisor_conn.disconnect()
     #set PXEboot for hosts
-    for vm in vm_config.vm_list:
-        vm_info = vm_config.vm_list[vm]
-        ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
-        api_ovirt.setPXEBoot(ovirt_conn, vm_info['vm_fqdn'])
-    ovirt_conn.disconnect()
+    if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+        for vm in vm_config.vm_list:
+            vm_info = vm_config.vm_list[vm]
+            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+            api_ovirt.setPXEBoot(hypervisor_conn, vm_info['vm_fqdn'])
+    hypervisor_conn.disconnect()
+
     #start hosts
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
-        ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
-        print " - Starting VM %s" % vm_info['vm_fqdn']
-        api_ovirt.powerOnGuest(ovirt_conn, vm_info['vm_fqdn'])
-    ovirt_conn.disconnect()
+        if vm_info['startup_after_creation']:
+            if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+                print " - Starting VM %s" % vm_info['vm_fqdn']
+                api_ovirt.powerOnGuest(hypervisor_conn, vm_info['vm_fqdn'])
+            else:
+                hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+                print " - Starting VM %s" % vm_info['vm_fqdn']
+                api_vmware.powerOnGuest(hypervisor_conn, vm_info['vm_fqdn'])
+            hypervisor_conn.disconnect()
 
 def main():
     global vm_config
