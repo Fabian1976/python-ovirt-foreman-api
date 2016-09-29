@@ -1,12 +1,16 @@
 [common]
 #ask for confirmation? (optional, defaults to 0)
-unattended = 1
+unattended = 0
 #Zookeeper address. Used to store puppet role information and to delete ossec auth details
 zookeeper_address = zookeeper.localdomain
 zookeeper_port = 2181
-#Pupeptmaster address. Used to clean certificates upon deletion
+#Puppetmaster address. Used to clean certificates upon deletion
 puppetmaster_address = puppetmaster.localdomain
 puppetmaster_port = 8140
+#IPA server adress and credentials. Used to assign a host to a specific group (maily used for sudo rules)
+freeipa_address = ipa.core.cmc.lan
+freeipa_user = admin
+freeipa_password = redhat123
 
 #name of the vm
 [servername]
@@ -21,10 +25,10 @@ hypervisor = hypervisor.localdomain
 hypervisor_type = oVirt
 #in case of VMware. This is the ESX host on which the VM is deployed
 hypervisor_host = host-c06.mgmt.recon.man
-#in case of VMware. Datacenter is needed
-vm_datacenter = Datacenter-D01
 #in case of VMware. A VMware version is needed
 hypervisor_version = vmx-08
+#in case of VMware. Datacenter is needed
+vm_datacenter = Datacenter-D01
 #in case of VMware. An os is optional
 vm_os = rhel6Guest
 #in case of VMware. An optional iso can be mounted
@@ -67,7 +71,11 @@ foreman_subnet = LOCAL
 #Partition layout
 foreman_ptable = Kickstart default
 
+startup_after_creation = 1
+
 #Puppet environment (optional, defaults to production)
 puppet_environment = production
 #Puppet server role (optional)
 #puppet_server_role = role::kibana::server
+#hostgroup to add host to in IPA (mainly used for sudo rules)
+ipa_hostgroup = puppet_dev
