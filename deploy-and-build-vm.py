@@ -52,7 +52,7 @@ def store_provisioning(zookeeper_conn):
         api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/CnfgMnmgmt/roles' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), vm_info['puppet_server_role'])
 
 def createVMs():
-    for vm in vm_config.vm_list:
+    for vm in sorted(vm_config.vm_list.keys()):
         vm_info = vm_config.vm_list[vm]
 
         print " - Connect to hypervisor"
@@ -173,6 +173,30 @@ def createVMs():
             api_ovirt.setPXEBoot(hypervisor_conn, vm_info['vm_fqdn'])
     hypervisor_conn.disconnect()
 
+    #create shareable disks if vm_type = oracle-rac
+    print "\n - Creating shareable disks. These are thick-provisioned so it can take a while"
+    if vm_config.vm_type.lower() == 'oracle-rac':
+        disk_counter = 1
+        for vm in sorted(vm_config.vm_list.keys()):
+            vm_info = vm_config.vm_list[vm]
+            if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+                for disk in vm_config.shared_disks:
+                    api_ovirt.createDisk(hypervisor_conn, vm_info['vm_fqdn'], vm_info['vm_datastore'], disk, disk_format='raw', thin_provision=False, shareable=True, disk_name=vm_info['vm_fqdn']+'_racdisk'+str(disk_counter).zfill(2))
+                    disk_counter += 1
+            host_disks = vm_info['vm_fqdn']
+            break #Disk only need to be created on the first VM. So break the loop
+        #attach shareable disks to other hosts
+        for vm in vm_config.vm_list:
+            vm_info = vm_config.vm_list[vm]
+            if vm_info['vm_fqdn'] != host_disks:
+                disk_counter = 1
+                for disk in vm_config.shared_disks:
+                    api_ovirt.attachDisk(hypervisor_conn, vm_info['vm_fqdn'], host_disks+'_racdisk'+str(disk_counter).zfill(2))
+                    disk_counter += 1
+        hypervisor_conn.disconnect()
+    sys.exit(99)
+
     #start hosts
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
@@ -199,7 +223,7 @@ def main():
     vm_config = Config(fname)
     vm_config.parse()
     print "These VM's will be created:"
-    for vm in vm_config.vm_list:
+    for vm in sorted(vm_config.vm_list.keys()):
         print '- ' + vm
         for key, value in collections.OrderedDict(sorted(vm_config.vm_list[vm].items())).items():
             if not isinstance(value, list):
@@ -208,6 +232,11 @@ def main():
                 print '\t- %s:' % key
                 for v in value:
                     print '\t\t- %s' % v
+    if vm_config.vm_type.lower() == 'oracle-rac':
+        print "\nVM type = %s" % vm_config.vm_type
+        print "Shared disks to be created in this order:"
+        for disk in vm_config.shared_disks:
+            print '\t- %s GB' % disk
     if vm_config.unattended == '0':
         print "Is this correct? (y/n)"
         answer = raw_input().lower()

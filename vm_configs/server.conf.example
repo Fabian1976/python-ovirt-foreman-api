@@ -11,6 +11,10 @@ puppetmaster_port = 8140
 freeipa_address = ipa.core.cmc.lan
 freeipa_user = admin
 freeipa_password = redhat123
+#Type of VM. Currently support oracle-rac and other. Defaults to other if not specified
+vm_type = other
+#shared disks. When vm_type = oracle-rac, shared disks need to be created. When vm_type = other, this is ignored
+shared_disks = 4, 1, 1, 4, 4, 6, 15, 15, 6, 4
 
 #name of the vm
 [servername]

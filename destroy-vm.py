@@ -95,6 +95,17 @@ def destroyVMs():
             print result
             print "Finished unsuccesfully, aborting"
             sys.exit(99)
+    if vm_config.vm_type.lower() == 'oracle-rac':
+        #delete shared disks from first vm
+        for vm in sorted(vm_config.vm_list.keys()):
+            vm_info = vm_config.vm_list[vm]
+            disk_counter = 1
+            if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+                for disk in vm_config.shared_disks:
+                    api_ovirt.deleteDisk(ovirt_conn, vm_info['vm_fqdn']+'_racdisk'+str(disk_counter).zfill(2))
+                    disk_counter += 1
+            break
+
     print " - Disconnect from hypervisor"
     ovirt_conn.disconnect()
     print " - Disconnect from zookeeper"

@@ -63,6 +63,18 @@ class Config:
                     except:
                         print "No freeipa password specified. Will continue but cannot register the host in any additional hostgroups"
                         self.freeipa_password = ''
+                try:
+                    self.vm_type = self.config.get(section, 'vm_type')
+                except:
+                    print "No vm_type defined. Asuming 'other'"
+                    self.vm_type = 'other'
+                if self.vm_type.lower() == 'oracle-rac':
+                    try:
+                        self.shared_disks = self.config.get(section, 'shared_disks').split(',')
+                        self.shared_disks = [disk.strip() for disk in self.shared_disks]
+                    except:
+                        print "No shared disks specified for vm_type oracle-rac. Cannot continue"
+                        sys.exit(99)
             else:
                 vm_list[section] = {}
                 try:
