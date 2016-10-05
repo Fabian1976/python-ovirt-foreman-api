@@ -268,5 +268,48 @@ def getMac(host_con,guest_name):
             return v.get('macAddress')
 
 def powerOnGuest(host_con,guest_name):
-    vm=host_con.get_vm_by_name(guest_name)
-    vm.power_on()
+    try:
+        if host_con.get_vm_by_name(guest_name).get_status() != 'POWERED ON':
+            print 'Starting VM: %s' % guest_name
+            host_con.get_vm_by_name(guest_name).power_on()
+            print 'Waiting for VM to reach Up status'
+            while host_con.get_vm_by_name(guest_name).get_status() != 'POWERED ON':
+                sleep(1)
+        else:
+            print 'VM already up'
+    except Exception as e:
+        print 'Failed to Start VM: %s\n%s' % (guest_name, str(e))
+
+def powerOffGuest(host_con,guest_name):
+    try:
+        if host_con.get_vm_by_name(guest_name).get_status() != 'POWERED OFF':
+            print 'Stopping VM: %s' % guest_name
+            host_con.get_vm_by_name(guest_name).power_off()
+            print 'Waiting for VM to reach Down status'
+            while host_con.get_vm_by_name(guest_name).get_status() != 'POWERED OFF':
+                sleep(1)
+        else:
+            print 'VM already down'
+    except Exception as e:
+        print 'Failed to Stop VM: %s\n%s' % (guest_name, str(e))
+
+def destroyGuest(host_con, guest_name):
+    powerOffGuest(host_con, guest_name)
+    try:
+        vm = host_con.get_vm_by_name(guest_name)
+        request = VI.Destroy_TaskRequestMsg()
+        _this = request.new__this(vm._mor)
+        _this.set_attribute_type(vm._mor.get_attribute_type())
+        request.set_element__this(_this)
+        ret = host_con._proxy.Destroy_Task(request)._returnval
+        task = VITask(ret, host_con)
+        print 'Waiting for VM to be deleted'
+        status = task.wait_for_state([task.STATE_SUCCESS, task.STATE_ERROR])
+        if status == task.STATE_SUCCESS:
+            result = 'Succesfully removed guest: %s' % guest_name
+        elif status == task.STATE_ERROR:
+            result = 'Failed to remove VM: %s\n%s' % (guest_name, task.get_error_message())
+    except Exception as e:
+        result = 'Failed to remove VM: %s\n%s' % (guest_name, str(e))
+    return result
+

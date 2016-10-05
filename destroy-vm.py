@@ -19,6 +19,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/lib')
 import api_ovirt
 import api_foreman
 import api_zookeeper
+import api_vmware
 
 vm_config = None
 zk_base_path = '/puppet'
