@@ -28,6 +28,8 @@ import api_freeipa
 vm_config = None
 zk_base_path = '/puppet'
 from config import Config
+import simplecrypt
+import base64
 
 def store_provisioning(zookeeper_conn):
     for vm in vm_config.vm_list:
@@ -57,9 +59,9 @@ def createVMs():
 
         print " - Connect to hypervisor"
         if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
         else:
-            hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+            hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
 
         print "*" * sum((12, len(vm_info['vm_fqdn'])))
         print "***** " + vm_info['vm_fqdn'] + " *****"
@@ -99,7 +101,7 @@ def createVMs():
         print "   - Found MAC: %s" % vm_mac
         if vm_info['osfamily'] == 'linux':
             print " - Connect to Foreman"
-            foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], vm_info['foreman_password'])
+            foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['foreman_password'])))
             print " - Create host in foreman"
             print "   - foreman:", vm_info['foreman']
             print "   - hostgroup:", vm_info['foreman_hostgroup']
@@ -137,7 +139,7 @@ def createVMs():
             api_zookeeper.disconnect(zookeeper_conn)
             if vm_config.freeipa_address != '' and vm_config.freeipa_user != '' and vm_config.freeipa_password != '' and vm_info['ipa_hostgroup'] != '':
                 print " - Connect to freeipa server"
-                freeipa_conn = api_freeipa.connectToHost(vm_config.freeipa_address, vm_config.freeipa_user, vm_config.freeipa_password)
+                freeipa_conn = api_freeipa.connectToHost(vm_config.freeipa_address, vm_config.freeipa_user, simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_config.freeipa_password)))
                 print "   - Registering host '%s' with hostgroup '%s'" % (vm_info['vm_fqdn'], vm_info['ipa_hostgroup'])
                 api_freeipa.add_host_hostgroup(freeipa_conn, vm_info['ipa_hostgroup'], vm_info['vm_fqdn'])
         elif vm_info['osfamily'] == 'windows':
@@ -169,18 +171,18 @@ def createVMs():
     if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
         for vm in vm_config.vm_list:
             vm_info = vm_config.vm_list[vm]
-            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
             api_ovirt.setPXEBoot(hypervisor_conn, vm_info['vm_fqdn'])
     hypervisor_conn.disconnect()
 
     #create shareable disks if vm_type = oracle-rac
-    print "\n - Creating shareable disks. These are thick-provisioned so it can take a while"
     if vm_config.vm_type.lower() == 'oracle-rac':
+        print "\n - Creating shareable disks. These are thick-provisioned so it can take a while"
         disk_counter = 1
         for vm in sorted(vm_config.vm_list.keys()):
             vm_info = vm_config.vm_list[vm]
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
                 for disk in vm_config.shared_disks:
                     api_ovirt.createDisk(hypervisor_conn, vm_info['vm_fqdn'], vm_info['vm_datastore'], disk, disk_format='raw', thin_provision=False, shareable=True, disk_name=vm_info['vm_fqdn']+'_racdisk'+str(disk_counter).zfill(2))
                     disk_counter += 1
@@ -195,18 +197,17 @@ def createVMs():
                     api_ovirt.attachDisk(hypervisor_conn, vm_info['vm_fqdn'], host_disks+'_racdisk'+str(disk_counter).zfill(2))
                     disk_counter += 1
         hypervisor_conn.disconnect()
-    sys.exit(99)
 
     #start hosts
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
         if vm_info['startup_after_creation']:
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
                 print " - Starting VM %s" % vm_info['vm_fqdn']
                 api_ovirt.powerOnGuest(hypervisor_conn, vm_info['vm_fqdn'])
             else:
-                hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+                hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
                 print " - Starting VM %s" % vm_info['vm_fqdn']
                 api_vmware.powerOnGuest(hypervisor_conn, vm_info['vm_fqdn'])
             hypervisor_conn.disconnect()

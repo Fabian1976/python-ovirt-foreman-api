@@ -24,6 +24,8 @@ import api_vmware
 vm_config = None
 zk_base_path = '/puppet'
 from config import Config
+import simplecrypt
+import base64
 
 def deleteZookeeperPath(path, recursive=False):
     zk = kazoo.client.KazooClient(hosts=vm_config.zookeeper_address + ':' + vm_config.zookeeper_port)
@@ -43,9 +45,8 @@ def getZookeeperValue(path):
 def destroyVMs():
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
-
         print " - Connect to hypervisor"
-        ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], vm_info['hypervisor_password'])
+        ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
 
         print "*" * sum((12, len(vm_info['vm_fqdn'])))
         print "***** " + vm_info['vm_fqdn'] + " *****"
@@ -60,7 +61,7 @@ def destroyVMs():
         print " -", result
 
         print " - Connect to Foreman"
-        foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], vm_info['foreman_password'])
+        foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['foreman_password'])))
         result = api_foreman.destroyGuest(foreman_conn, vm_info['vm_fqdn'])
         if result != "Succesfully removed guest: " + vm_info['vm_fqdn']:
             print result

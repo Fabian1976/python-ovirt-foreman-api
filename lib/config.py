@@ -5,6 +5,7 @@ import ConfigParser
 
 class Config:
     def __init__(self, conf_file):
+        self.salt = 'ConclusionCore'
         self.conf_file = conf_file
         self.vm_list = {}
         self.supported_hypervisors = ['vmware', 'ovirt', 'rhev']
