@@ -6,7 +6,7 @@
 
 #this script requires pysphere
 
-from pysphere import VIServer, VIProperty, MORTypes
+from pysphere import VIServer, VIProperty, MORTypes, VIApiException
 from pysphere.resources import VimService_services as VI
 from pysphere.vi_task import VITask
 
@@ -18,7 +18,7 @@ def connectToHost(host,host_user,host_pw):
         s.connect(host,host_user,host_pw)
         return s
     except VIApiException, err:
-        print "Cannot connect to host: "+host+" error message: "+err    
+        print "Cannot connect to host: '%s', error message: %s" %(host,err)    
 
 def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ver,guest_mem,guest_cpu,guest_iso,guest_os,guest_disks_gb,guest_ds,guest_networks):
     #get dc MOR from list
