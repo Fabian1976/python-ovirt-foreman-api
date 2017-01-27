@@ -26,6 +26,12 @@ zk_base_path = '/puppet'
 from config import Config
 import simplecrypt
 import base64
+#disable warnings urllib
+import warnings
+warnings.simplefilter('ignore')
+#disable warnings Foreman API
+import logging
+logging.disable(logging.ERROR)
 
 def deleteZookeeperPath(path, recursive=False):
     zk = kazoo.client.KazooClient(hosts=vm_config.zookeeper_address + ':' + vm_config.zookeeper_port)

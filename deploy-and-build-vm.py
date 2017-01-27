@@ -30,6 +30,12 @@ zk_base_path = '/puppet'
 from config import Config
 import simplecrypt
 import base64
+#disable warnings urllib
+import warnings
+warnings.simplefilter('ignore')
+#disable warnings Foreman API
+import logging
+logging.disable(logging.ERROR)
 
 def store_provisioning(zookeeper_conn):
     for vm in vm_config.vm_list:
