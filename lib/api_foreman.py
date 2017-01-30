@@ -152,3 +152,10 @@ def getHostId(api, hostName):
         else:
             hostId = 0
     return hostId
+
+def getHostIP(api, hostName):
+    try:
+        return str(api.index_hosts(search=hostName)['results'][0]['ip'])
+    except IndexError:
+        print "Host %s not found" % hostName
+        return -1

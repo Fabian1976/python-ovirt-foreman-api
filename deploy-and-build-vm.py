@@ -24,6 +24,7 @@ import api_vmware
 import api_foreman
 import api_zookeeper
 import api_freeipa
+import kazoo.exceptions
 
 vm_config = None
 zk_base_path = '/puppet'
@@ -36,6 +37,36 @@ warnings.simplefilter('ignore')
 #disable warnings Foreman API
 import logging
 logging.disable(logging.ERROR)
+#needed to generate key for ossec
+import hashlib
+
+def create_ossec_key(zookeeper_conn, hostname, puppet_environment, ip_address):
+    agent_seed = 'xaeS7ahf'
+    ossecserver, nodeStats = api_zookeeper.getValue(zookeeper_conn, zk_base_path + '/production/defaults/profile::ossec::client::ossec_server')
+    ossecserver_path = zk_base_path + '/production/nodes/' + ossecserver
+    try:
+        agent_id, nodeStats = api_zookeeper.getValue(zookeeper_conn, ossecserver_path + '/client-keys/' + hostname + '/id')
+        print "Host reeds bekend in OSSec"
+    except kazoo.exceptions.NoNodeError:
+        print "   - Fetching moest recent ossec client-num"
+        agent_id, nodeStats = api_zookeeper.getValue(zookeeper_conn, ossecserver_path + '/client-num')
+        agent_id = int(agent_id)
+        agent_id += 1
+        print "     - %s" % agent_id
+        print "   - Generating OSsec key"
+        agent_key1 = hashlib.md5(str(agent_id) + ' ' + agent_seed).hexdigest()
+        agent_key2 = hashlib.md5(hostname + ' ' + ip_address + ' ' + agent_seed).hexdigest()
+        agent_key = agent_key1 + agent_key2
+        print "   - Storing values for OSsec-server"
+        print "     - %s" % api_zookeeper.storeValue(zookeeper_conn, ossecserver_path + '/client-num', str(agent_id))
+        print "     - %s" % api_zookeeper.storeValue(zookeeper_conn, ossecserver_path + '/client-keys/' + hostname + '/id', str(agent_id))
+        print "     - %s" % api_zookeeper.storeValue(zookeeper_conn, ossecserver_path + '/client-keys/' + hostname + '/ip', ip_address)
+        print "     - %s" % api_zookeeper.storeValue(zookeeper_conn, ossecserver_path + '/client-keys/' + hostname + '/key', agent_key)
+        print "   - Storing values for OSsec-client"
+        zk_path = zk_base_path + '/' + puppet_environment + '/nodes/' + hostname
+        print "     - %s" % api_zookeeper.storeValue(zookeeper_conn, zk_path + '/ossec::client::ossec_client_id', str(agent_id))
+        print "     - %s" % api_zookeeper.storeValue(zookeeper_conn, zk_path + '/ossec::client::ossec_client_ip', ip_address)
+        print "     - %s" % api_zookeeper.storeValue(zookeeper_conn, zk_path + '/ossec::client::ossec_client_key', agent_key)
 
 def store_provisioning(zookeeper_conn):
     for vm in vm_config.vm_list:
@@ -108,16 +139,15 @@ def createVMs():
         if vm_info['osfamily'] == 'linux':
             print " - Connect to Foreman"
             foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['foreman_password'])))
-            print " - Create host in foreman"
-            print "   - foreman:", vm_info['foreman']
-            print "   - hostgroup:", vm_info['foreman_hostgroup']
-            print "   - organization:", vm_info['foreman_organization']
-            print "   - location:", vm_info['foreman_location']
-            print "   - subnet:", vm_info['foreman_subnet']
+            print "   - Create host in foreman"
+            print "     - foreman:", vm_info['foreman']
+            print "     - hostgroup:", vm_info['foreman_hostgroup']
+            print "     - organization:", vm_info['foreman_organization']
+            print "     - location:", vm_info['foreman_location']
+            print "     - subnet:", vm_info['foreman_subnet']
             if vm_info['vm_ipaddress']:
                 print "     - ipaddress:", vm_info['vm_ipaddress']
-            print "   - puppet environment:", vm_info['puppet_environment']
-            print ""
+            print "     - puppet environment:", vm_info['puppet_environment']
             if vm_info['vm_ipaddress']:
                 result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true', vm_info['vm_ipaddress'])
             else:
@@ -126,10 +156,16 @@ def createVMs():
                 print result
                 print "Finished unsuccesfully, aborting"
                 sys.exit(99)
-            print " -", result
+            print "   -", result
+            print "   - Fetching IP address to generate OSSec key"
+            ip_address = api_foreman.getHostIP(foreman_conn, vm)
+            print "     - IP-address: %s" % ip_address
+            print ""
+            print " - Connect to zookeeper"
             zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
+            create_ossec_key(zookeeper_conn, vm_info['vm_fqdn'], vm_info['puppet_environment'], ip_address)
+
             if vm_info['puppet_server_role'] != '':
-                print " - Connect to zookeeper"
                 print " - Creating role in Zookeeper"
                 print "   - server role:", vm_info['puppet_server_role']
                 zk_path = zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn'] + '/roles'
