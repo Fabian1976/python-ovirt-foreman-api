@@ -64,10 +64,23 @@ def createGuest(api,guest_cluster,guest_name,guest_description,guest_mem,guest_c
 def getMac(api,guest_name):
     return api.vms.get(guest_name).nics.get("eth0").mac.address
 
-def setPXEBoot(api, guest_name):
+def setPXEBootFirst(api, guest_name):
     vm = api.vms.get(name=guest_name)
     hd_boot_dev = params.Boot(dev='hd')
     net_boot_dev = params.Boot(dev='network')
+    vm.os.set_boot([net_boot_dev])
+    vm.update()
+    sleep(1)
+    vm.os.set_boot([net_boot_dev, hd_boot_dev])
+    vm.update()
+
+def setPXEBootSecond(api, guest_name):
+    vm = api.vms.get(name=guest_name)
+    hd_boot_dev = params.Boot(dev='hd')
+    net_boot_dev = params.Boot(dev='network')
+    vm.os.set_boot([hd_boot_dev])
+    vm.update()
+    sleep(1)
     vm.os.set_boot([hd_boot_dev, net_boot_dev])
     vm.update()
 
@@ -129,3 +142,11 @@ def destroyGuest(api, guest_name):
     except Exception as e:
         result = 'Failed to remove VM: %s\n%s' % (guest_name, str(e))
     return result
+
+def softRebootGuest(api, guest_name):
+    api.vms.get(guest_name).reboot()
+
+def hardRebootGuest(api, guest_name):
+    powerOffGuest(api, guest_name)
+    sleep(5) #wait for updates
+    powerOnGuest(api, guest_name)

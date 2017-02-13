@@ -70,12 +70,12 @@ def destroyVMs():
         foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['foreman_password'])))
         result = api_foreman.destroyGuest(foreman_conn, vm_info['vm_fqdn'])
         if result != "Succesfully removed guest: " + vm_info['vm_fqdn']:
-            print result
+            print "   - ", result
             print "Finished unsuccesfully, aborting"
             sys.exit(99)
-        print " -", result
+        print "   - ", result
         print " - Connect to Puppetmaster"
-        puppet_conn = puppet.Puppet(host='puppetmaster01.core.cmc.lan', port=8140, key_file='./ssl/api-key.pem', cert_file='./ssl/api-cert.pem')
+        puppet_conn = puppet.Puppet(host=vm_config.puppetmaster_address, port=vm_config.puppetmaster_port, key_file='./ssl/api-key.pem', cert_file='./ssl/api-cert.pem')
         print "   - Clear certificate of %s" % vm_info['vm_fqdn']
         try:
             puppet_conn.certificate_clean(vm_info['vm_fqdn'])

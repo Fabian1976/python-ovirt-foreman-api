@@ -192,7 +192,7 @@ def createVMs():
             print "   - $IP = '%s'" % vm_info['vm_ipaddress']
             print "   - $Role = '%s'" % vm_info['puppet_server_role'].upper()
             print "   - $OTAP = 'P'"
-            print "   - $PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=puppetmaster01.core.cmc.lan PUPPET_AGENT_ENVIRONMENT=%s'" % vm_info["puppet_environment"]
+            print "   - $PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=%s PUPPET_AGENT_ENVIRONMENT=%s'" % (vm_config.puppetmaster_address, vm_info["puppet_environment"])
             f = open('/mnt/dsc/' + vm + '.start', "w")
 #            f = open('./' + vm + '.start', "w")
             f.write("$Hostname = '%s'\r\n" % vm)
@@ -201,7 +201,7 @@ def createVMs():
             f.write("$IP = '%s'\r\n" % vm_info['vm_ipaddress'])
             f.write("$Role = '%s'\r\n" % vm_info['puppet_server_role'].upper())
             f.write("$OTAP = 'P'\r\n")
-            f.write("$PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=puppetmaster01.core.cmc.lan PUPPET_AGENT_ENVIRONMENT=%s'\r\n" % vm_info["puppet_environment"])
+            f.write("$PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=%s PUPPET_AGENT_ENVIRONMENT=%s'\r\n" % (vm_config.puppetmaster_address, vm_info["puppet_environment"]))
             f.close()
             print " - Waiting for .done file to appear when WDS is done"
             while not os.path.exists('/mnt/dsc/' + vm + '.done'):
@@ -214,7 +214,7 @@ def createVMs():
         for vm in vm_config.vm_list:
             vm_info = vm_config.vm_list[vm]
             hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-            api_ovirt.setPXEBoot(hypervisor_conn, vm_info['vm_fqdn'])
+            api_ovirt.setPXEBootSecond(hypervisor_conn, vm_info['vm_fqdn'])
     hypervisor_conn.disconnect()
 
     #create shareable disks if vm_type = oracle-rac
