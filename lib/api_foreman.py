@@ -5,6 +5,7 @@
 #this script requires ovirt-engine-sdk-python
 from foreman.client import Foreman
 import sys
+import time
 
 def connectToHost(host, host_user, host_pwd):
     apiurl="http://"+host
@@ -41,10 +42,7 @@ def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organizati
     if guest_ptable_id == 0:
         print "Partition table '%s' not found. Cannot continue" % guest_ptable
         sys.exit(1)
-    # Kan middels python api geen organizations ophalen. Kan wel handmatig: http://<foreman_url>/api/organizations
-#    guest={'name': guest_name, 'mac': guest_mac_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id}
     try:
-#        api.hosts.create(host=guest)
         hosts = api.hosts.index()['results']
         if guest_ip_address:
             api.hosts.create(host={'name': guest_name, 'mac': guest_mac_address, 'ip': guest_ip_address, 'hostgroup_id': guest_hostgroup_id, 'build': guest_build, 'domain_id': guest_domain_id, 'organization_id': guest_organization_id, 'location_id': guest_location_id, 'subnet_id': guest_subnet_id, 'environment_id': guest_environment_id, 'ptable_id': guest_ptable_id})
@@ -172,3 +170,21 @@ def buildHost(api, hostName):
         print apiresult
         result = "Host '%s' successfully set to build mode" % hostName
     return result
+
+def createParameters(api, hostName, parameters):
+    hostResults = api.index_hosts(search=hostName)['results']
+    for parameter in parameters:
+        real_parameter = {}
+        parameterCreated = False
+        for k, v in parameter.iteritems():
+            real_parameter['name'] = k
+            real_parameter['value'] = v
+        while not parameterCreated:
+            api.hosts.parameters_create(real_parameter, hostResults[0]['id'])
+            parameterResults = api.hosts.parameters_index(hostResults[0]['id'])['results']
+            for parameterResult in parameterResults:
+                if real_parameter['name'] == parameterResult['name']:
+                    parameterCreated = True
+            time.sleep(3)
+
+        print "Succesfully created parameter: %s" % parameter

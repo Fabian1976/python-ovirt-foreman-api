@@ -258,5 +258,10 @@ class Config:
                 except:
                     print "No IPA hostgroup specified. Not adding host to any hostgroup"
                     vm_list[section]['ipa_hostgroup'] = ''
+                try:
+                    import ast
+                    vm_list[section]['override_parameters'] = ast.literal_eval(self.config.get(section, 'override_parameters'))
+                except:
+                    vm_list[section]['override_parameters'] = []
                 self.vm_list = vm_list
 
