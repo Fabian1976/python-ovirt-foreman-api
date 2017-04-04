@@ -42,7 +42,7 @@ import hashlib
 
 def create_ossec_key(zookeeper_conn, hostname, puppet_environment, ip_address):
     agent_seed = 'xaeS7ahf'
-    ossecserver, nodeStats = api_zookeeper.getValue(zookeeper_conn, zk_base_path + '/production/defaults/profile::ossec::client::ossec_server')
+    ossecserver, nodeStats = api_zookeeper.getValue(zookeeper_conn, zk_base_path + '/production/defaults/core::profile::ossec::client::ossec_server')
     ossecserver_path = zk_base_path + '/production/nodes/' + ossecserver
     try:
         agent_id, nodeStats = api_zookeeper.getValue(zookeeper_conn, ossecserver_path + '/client-keys/' + hostname + '/id')
