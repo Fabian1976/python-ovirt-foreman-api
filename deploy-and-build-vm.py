@@ -51,8 +51,8 @@ def create_ossec_key(zookeeper_conn, hostname, puppet_environment, ip_address):
         print "   - Fetching moest recent ossec client-num"
         agent_id, nodeStats = api_zookeeper.getValue(zookeeper_conn, ossecserver_path + '/client-num')
         agent_id = int(agent_id)
-        agent_id += 1
         print "     - %s" % agent_id
+        agent_id += 1
         print "   - Generating OSsec key"
         agent_key1 = hashlib.md5(str(agent_id) + ' ' + agent_seed).hexdigest()
         agent_key2 = hashlib.md5(hostname + ' ' + ip_address + ' ' + agent_seed).hexdigest()
