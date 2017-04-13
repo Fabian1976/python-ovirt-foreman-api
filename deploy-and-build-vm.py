@@ -94,48 +94,51 @@ def createVMs():
     for vm in sorted(vm_config.vm_list.keys()):
         vm_info = vm_config.vm_list[vm]
 
-        print " - Connect to hypervisor"
-        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-        else:
-            hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+        if vm_info['vm_exists'] == 0:
+            print " - Connect to hypervisor"
+            if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+            else:
+                hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
 
-        print "*" * sum((12, len(vm_info['vm_fqdn'])))
-        print "***** " + vm_info['vm_fqdn'] + " *****"
-        print "*" * sum((12, len(vm_info['vm_fqdn'])))
+            print "*" * sum((12, len(vm_info['vm_fqdn'])))
+            print "***** " + vm_info['vm_fqdn'] + " *****"
+            print "*" * sum((12, len(vm_info['vm_fqdn'])))
 
-        print " - Create VM on hypervisor"
-        print "   - hypervisor:", vm_info["hypervisor"]
-        print "   - hypervisor type:", vm_info['hypervisor_type']
-        print "   - datastore:", vm_info["vm_datastore"]
-        print "   - name:", vm_info['vm_fqdn']
-        print "   - domain:", vm_info['vm_domain']
-        print "   - #cpu:", vm_info["vm_cpus"]
-        print "   - memory:", vm_info["vm_memory"],"MB"
-        print "   - disks:"
-        for disk in vm_info["vm_disks"]:
-            print "     - " + disk + "GB"
-        print "   - vlans:"
-        for network in vm_info['vm_networks']:
-            print "     - " + network
-        print ""
-        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-            result = api_ovirt.createGuest(hypervisor_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
-        else:
-            result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_info['vm_fqdn'], vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'])
-        if result != "Succesfully created guest: " + vm_info['vm_fqdn']:
-            print result
-            print "Finished unsuccesfully, aborting"
-            hypervisor_conn.disconnect()
-            sys.exit(99)
-        print " -", result
+            print " - Create VM on hypervisor"
+            print "   - hypervisor:", vm_info["hypervisor"]
+            print "   - hypervisor type:", vm_info['hypervisor_type']
+            print "   - datastore:", vm_info["vm_datastore"]
+            print "   - name:", vm_info['vm_fqdn']
+            print "   - domain:", vm_info['vm_domain']
+            print "   - #cpu:", vm_info["vm_cpus"]
+            print "   - memory:", vm_info["vm_memory"],"MB"
+            print "   - disks:"
+            for disk in vm_info["vm_disks"]:
+                print "     - " + disk + "GB"
+            print "   - vlans:"
+            for network in vm_info['vm_networks']:
+                print "     - " + network
+            print ""
+            if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+                result = api_ovirt.createGuest(hypervisor_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
+            else:
+                result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_info['vm_fqdn'], vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'])
+            if result != "Succesfully created guest: " + vm_info['vm_fqdn']:
+                print result
+                print "Finished unsuccesfully, aborting"
+                hypervisor_conn.disconnect()
+                sys.exit(99)
+            print " -", result
 
-        print " - Retrieve MAC address to pass to foreman"
-        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-            vm_mac = api_ovirt.getMac(hypervisor_conn, vm_info['vm_fqdn'])
+            print " - Retrieve MAC address to pass to foreman"
+            if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+                vm_mac = api_ovirt.getMac(hypervisor_conn, vm_info['vm_fqdn'])
+            else:
+                vm_mac = api_vmware.getMac(hypervisor_conn, vm_info['vm_fqdn'])
+            print "   - Found MAC: %s" % vm_mac
         else:
-            vm_mac = api_vmware.getMac(hypervisor_conn, vm_info['vm_fqdn'])
-        print "   - Found MAC: %s" % vm_mac
+            vm_mac = vm_info['vm_macaddress']
         if vm_info['osfamily'] == 'linux':
             print " - Connect to Foreman"
             foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['foreman_password'])))
@@ -163,7 +166,8 @@ def createVMs():
             print ""
             print " - Connect to zookeeper"
             zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
-            create_ossec_key(zookeeper_conn, vm_info['vm_fqdn'], vm_info['puppet_environment'], ip_address)
+            if vm_info['ossec_in_env'] == 1:
+                create_ossec_key(zookeeper_conn, vm_info['vm_fqdn'], vm_info['puppet_environment'], ip_address)
 
             if vm_info['puppet_server_role'] != '':
                 print " - Creating role in Zookeeper"
@@ -207,6 +211,9 @@ def createVMs():
             while not os.path.exists('/mnt/dsc/' + vm + '.done'):
                 time.sleep(2)
                 print "   - '/mnt/dsc/%s.done' still not there" % vm
+        if vm_info['vm_exists'] == 1:
+            #exit gracefully if VM allready exists. When VM allready exists, the names don't match (detached mode) and below functions don't work
+            sys.exit(0)
     print " - Disconnect from hypervisor"
     hypervisor_conn.disconnect()
     #set PXEboot for hosts

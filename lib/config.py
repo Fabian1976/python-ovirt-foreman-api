@@ -88,6 +88,10 @@ class Config:
                 except:
                     print "No domain provided."
                     vm_list[section]['vm_domain'] = ''
+                try:
+                    vm_list[section]['vm_exists'] = int(self.config.get(section, 'vm_exists'))
+                except:
+                    vm_list[section]['vm_exists'] = 0
                 if vm_list[section]['vm_domain'] == '':
                     vm_list[section]['vm_fqdn'] = section
                 else:
@@ -183,6 +187,14 @@ class Config:
                     print "No VLAN provided. You can still access the VM, but only through the console."
                     vm_list[section]['vm_networks'] = []
                 try:
+                    vm_list[section]['vm_macaddress'] = self.config.get(section, 'vm_macaddress')
+                except:
+                    if vm_list[section]['vm_exists'] == 1:
+                        print "No MAC address provided but the VM does allready exist. I don't know what to do"
+                        sys.exit(99)
+                    else:
+                        vm_list[section]['vm_macaddress'] = ''
+                try:
                     vm_list[section]['vm_ipaddress'] = self.config.get(section, 'vm_ipaddress')
                 except:
                     if vm_list[section]['osfamily'] == 'windows':
@@ -263,5 +275,11 @@ class Config:
                     vm_list[section]['override_parameters'] = ast.literal_eval(self.config.get(section, 'override_parameters'))
                 except:
                     vm_list[section]['override_parameters'] = []
+                try:
+                     vm_list[section]['ossec_in_env'] = int(self.config.get(section, 'ossec_in_env'))
+                except:
+                    vm_list[section]['ossec_in_env'] = 1
+
                 self.vm_list = vm_list
+
 
