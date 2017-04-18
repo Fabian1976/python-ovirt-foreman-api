@@ -21,6 +21,8 @@ shared_disks = 4, 1, 1, 4, 4, 6, 15, 15, 6, 4
 osfamily = Linux
 #Domain for host
 vm_domain = localdomain
+#Does VM allready exists? (happens when created manually)
+vm_exists = 0
 #Cluster for host
 vm_cluster = LAB-Cluster
 #hostname of the hypervisor manager or vCenter host
@@ -54,10 +56,16 @@ vm_purpose = VM to test something
 vm_networks = vlan-1011
 #IP address (optional. Currently not needed for Linux VM's but mandatory for Windows VM's)
 #vm_ipaddress = 127.0.0.1
+#MAC address of interface (only needs to be provided when VM allready exists)
+#vm_macaddress = 00:00:00:00:00:00
 #snapshot to restore (only used when restoring to a snapshot
 snapshot_to_restore = snapshot_name
 #must the server be booted up after snapshot restore? (only used when restoring to a snapshot
 boot_after_restore = 1
+#Do we want to override some parameters?
+#override_parameters = [{'puppetmaster': 'puppetmaster02.core.cmc.lan'}]
+#Is OSSEC used in this environment?
+#ossec_in_env = 1
 
 #hostname of Foreman
 foreman = katello.localdomain
