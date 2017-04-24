@@ -28,6 +28,8 @@ import kazoo.exceptions
 
 vm_config = None
 zk_base_path = '/puppet'
+dsc_mount = '/mnt/dsc'
+
 from config import Config
 import simplecrypt
 import base64
@@ -39,6 +41,17 @@ import logging
 logging.disable(logging.ERROR)
 #needed to generate key for ossec
 import hashlib
+
+def prerequisites():
+    #Check if DSC share is mounted
+    if not os.path.ismount(dsc_mount):
+        print "DSC share not mounted. Cannot continue"
+        sys.exit(99)
+    #Check if puppetmaster is reachable
+    #Check if Foreman is reachable
+    #Check if hypervisor is reachable
+    #Check if Zookeeper is reachable
+    #Check if IPA is reachable
 
 def create_ossec_key(zookeeper_conn, hostname, puppet_environment, ip_address):
     agent_seed = 'xaeS7ahf'
@@ -278,6 +291,7 @@ def main():
         sys.exit(99)
     vm_config = Config(fname)
     vm_config.parse()
+    prerequisites()
     print "These VM's will be created:"
     for vm in sorted(vm_config.vm_list.keys()):
         print '- ' + vm
