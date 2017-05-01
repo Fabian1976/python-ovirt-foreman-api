@@ -52,17 +52,23 @@ def destroyVMs():
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
         print " - Connect to hypervisor"
-        ovirt_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+        else:
+            hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
 
         print "*" * sum((12, len(vm_info['vm_fqdn'])))
         print "***** " + vm_info['vm_fqdn'] + " *****"
         print "*" * sum((12, len(vm_info['vm_fqdn'])))
 
-        result = api_ovirt.destroyGuest(ovirt_conn, vm_info['vm_fqdn'])
+        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+            result = api_ovirt.destroyGuest(hypervisor_conn, vm_info['vm_fqdn'])
+        else:
+            result = api_vmware.destroyGuest(hypervisor_conn, vm_info['vm_fqdn'])
         if result != "Succesfully removed guest: " + vm_info['vm_fqdn']:
             print result
             print "Finished unsuccesfully, aborting"
-            ovirt_conn.disconnect()
+            hypervisor_conn.disconnect()
             sys.exit(99)
         print " -", result
 
@@ -109,12 +115,12 @@ def destroyVMs():
             disk_counter = 1
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 for disk in vm_config.shared_disks:
-                    api_ovirt.deleteDisk(ovirt_conn, vm_info['vm_fqdn']+'_racdisk'+str(disk_counter).zfill(2))
+                    api_ovirt.deleteDisk(hypervisor_conn, vm_info['vm_fqdn']+'_racdisk'+str(disk_counter).zfill(2))
                     disk_counter += 1
             break
 
     print " - Disconnect from hypervisor"
-    ovirt_conn.disconnect()
+    hypervisor_conn.disconnect()
     print " - Disconnect from zookeeper"
     api_zookeeper.disconnect(zookeeper_conn)
 
