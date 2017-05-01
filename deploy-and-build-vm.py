@@ -28,7 +28,7 @@ import kazoo.exceptions
 
 vm_config = None
 zk_base_path = '/puppet'
-dsc_mount = '/mnt/dsc'
+wds_mount = '/mnt/dsc'
 
 from config import Config
 import simplecrypt
@@ -44,7 +44,7 @@ import hashlib
 
 def prerequisites():
     #Check if DSC share is mounted
-    if not os.path.ismount(dsc_mount):
+    if not os.path.ismount(wds_mount):
         print "DSC share not mounted. Cannot continue"
         sys.exit(99)
     #Check if puppetmaster is reachable
@@ -146,12 +146,12 @@ def createVMs():
 
             print " - Retrieve MAC address to pass to foreman"
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-                vm_mac = api_ovirt.getMac(hypervisor_conn, vm_info['vm_fqdn'])
+                vm_info['vm_macaddress'] = api_ovirt.getMac(hypervisor_conn, vm_info['vm_fqdn'])
             else:
-                vm_mac = api_vmware.getMac(hypervisor_conn, vm_info['vm_fqdn'])
-            print "   - Found MAC: %s" % vm_mac
+                vm_info['vm_macaddress'] = api_vmware.getMac(hypervisor_conn, vm_info['vm_fqdn'])
+            print "   - Found MAC: %s" % vm_info['vm_macaddress']
         else:
-            vm_mac = vm_info['vm_macaddress']
+            print " - Using MAC address: %s" % vm_info['vm_macaddress']
         if vm_info['osfamily'] == 'linux':
             print " - Connect to Foreman"
             foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['foreman_password'])))
@@ -165,9 +165,9 @@ def createVMs():
                 print "     - ipaddress:", vm_info['vm_ipaddress']
             print "     - puppet environment:", vm_info['puppet_environment']
             if vm_info['vm_ipaddress']:
-                result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true', vm_info['vm_ipaddress'])
+                result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_info['vm_macaddress'], vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true', vm_info['vm_ipaddress'])
             else:
-                result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_mac, vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true')
+                result = api_foreman.createGuest(foreman_conn, vm, vm_info['foreman_hostgroup'], vm_info['vm_domain'], vm_info['foreman_organization'], vm_info['foreman_location'], vm_info['vm_macaddress'], vm_info['foreman_subnet'], vm_info['puppet_environment'], vm_info['foreman_ptable'], 'true')
             if result != "Succesfully created guest: " + vm:
                 print result
                 print "Finished unsuccesfully, aborting"
@@ -201,29 +201,12 @@ def createVMs():
                 freeipa_conn = api_freeipa.connectToHost(vm_config.freeipa_address, vm_config.freeipa_user, simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_config.freeipa_password)))
                 print "   - Registering host '%s' with hostgroup '%s'" % (vm_info['vm_fqdn'], vm_info['ipa_hostgroup'])
                 api_freeipa.add_host_hostgroup(freeipa_conn, vm_info['ipa_hostgroup'], vm_info['vm_fqdn'])
-        elif vm_info['osfamily'] == 'windows':
-            print " - Writing file to WDS pickup location"
-            print "   - $Hostname = '%s'" % vm
-            print "   - $vDC = '%s'" % vm.split('-')[0]
-            print "   - $MAC = '%s'" % vm_mac
-            print "   - $IP = '%s'" % vm_info['vm_ipaddress']
-            print "   - $Role = '%s'" % vm_info['puppet_server_role'].upper()
-            print "   - $OTAP = 'P'"
-            print "   - $PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=%s PUPPET_AGENT_ENVIRONMENT=%s'" % (vm_config.puppetmaster_address, vm_info["puppet_environment"])
-            f = open('/mnt/dsc/' + vm + '.start', "w")
-#            f = open('./' + vm + '.start', "w")
-            f.write("$Hostname = '%s'\r\n" % vm)
-            f.write("$vDC = '%s'\r\n" % vm.split('-')[0])
-            f.write("$MAC = '%s'\r\n" % vm_mac)
-            f.write("$IP = '%s'\r\n" % vm_info['vm_ipaddress'])
-            f.write("$Role = '%s'\r\n" % vm_info['puppet_server_role'].upper())
-            f.write("$OTAP = 'P'\r\n")
-            f.write("$PuppetAgent_Arguments = 'PUPPET_MASTER_SERVER=%s PUPPET_AGENT_ENVIRONMENT=%s'\r\n" % (vm_config.puppetmaster_address, vm_info["puppet_environment"]))
-            f.close()
+            print " - Writing file for WDS to pickup and create DHCP reservation."
+            write_wds_file(vm, vm_info)
             print " - Waiting for .done file to appear when WDS is done"
-            while not os.path.exists('/mnt/dsc/' + vm + '.done'):
-                time.sleep(2)
-                print "   - '/mnt/dsc/%s.done' still not there" % vm
+            while not os.path.exists(wds_mount + '/' + vm + '.done'):
+                time.sleep(5)
+                print "   - %s/%s.done' still not there" % (wds_mount, vm)
         if vm_info['vm_exists'] == 1:
             #exit gracefully if VM allready exists. When VM allready exists, the names don't match (detached mode) and below functions don't work
             sys.exit(0)
@@ -279,6 +262,23 @@ def createVMs():
                     print " - Additional parameters provided. This may take a while"
                     api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
             hypervisor_conn.disconnect()
+
+def write_wds_file(vm, vm_info):
+    print " - Writing file to WDS pickup location"
+    print "   - domain      = %s" % vm_info['vm_domain']
+    print "   - os          = %s" % vm_info['osfamily']
+    print "   - ip          = %s" % vm_info['vm_ipaddress']
+    print "   - mac         = %s" % vm_info['vm_macaddress']
+    print "   - bootserver  = %s" % '192.168.10.32'
+    print "   - environment = %s" % vm_info['puppet_environment']
+    f = open(wds_mount + '/' + vm + '.start', "w")
+    f.write("domain      = %s\r\n" % vm_info['vm_domain'])
+    f.write("os          = %s\r\n" % vm_info['osfamily'])
+    f.write("ip          = %s\r\n" % vm_info['vm_ipaddress'])
+    f.write("mac         = %s\r\n" % vm_info['vm_macaddress'])
+    f.write("bootserver  = %s\r\n" % '192.168.10.32')
+    f.write("environment = %s\r\n" % vm_info['puppet_environment'])
+    f.close()
 
 def main():
     global vm_config
