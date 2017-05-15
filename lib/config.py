@@ -279,6 +279,10 @@ class Config:
                      vm_list[section]['ossec_in_env'] = int(self.config.get(section, 'ossec_in_env'))
                 except:
                     vm_list[section]['ossec_in_env'] = 1
+                try:
+                    vm_list[section]['deploy_via_wds'] = int(self.config.get(section, 'deploy_via_wds'))
+                except:
+                    vm_list[section]['deploy_via_wds'] = 0
 
                 self.vm_list = vm_list
 

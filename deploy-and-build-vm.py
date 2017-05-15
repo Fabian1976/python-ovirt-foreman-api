@@ -201,12 +201,13 @@ def createVMs():
                 freeipa_conn = api_freeipa.connectToHost(vm_config.freeipa_address, vm_config.freeipa_user, simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_config.freeipa_password)))
                 print "   - Registering host '%s' with hostgroup '%s'" % (vm_info['vm_fqdn'], vm_info['ipa_hostgroup'])
                 api_freeipa.add_host_hostgroup(freeipa_conn, vm_info['ipa_hostgroup'], vm_info['vm_fqdn'])
-            print " - Writing file for WDS to pickup and create DHCP reservation."
-            write_wds_file(vm, vm_info)
-            print " - Waiting for .done file to appear when WDS is done"
-            while not os.path.exists(wds_mount + '/' + vm + '.done'):
-                time.sleep(5)
-                print "   - %s/%s.done' still not there" % (wds_mount, vm)
+            if vm_info['deploy_via_wds']:
+                print " - Writing file for WDS to pickup and create DHCP reservation."
+                write_wds_file(vm, vm_info)
+                print " - Waiting for .done file to appear when WDS is done"
+                while not os.path.exists(wds_mount + '/' + vm + '.done'):
+                    time.sleep(5)
+                    print "   - %s/%s.done' still not there" % (wds_mount, vm)
         if vm_info['vm_exists'] == 1:
             #exit gracefully if VM allready exists. When VM allready exists, the names don't match (detached mode) and below functions don't work
             sys.exit(0)
