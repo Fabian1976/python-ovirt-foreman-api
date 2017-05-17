@@ -159,15 +159,14 @@ def getHostIP(api, hostName):
         return -1
 
 def buildHost(api, hostName):
-    command = {}
     hostResults = api.index_hosts(search=hostName)['results']
     if len(hostResults) <> 1:
         print "Did not get 1 result with search '%s'. Got '%s'. Please refine your search" % (hostName, len(hostResults))
         result = -1
     else:
-        command['build'] = True
-        apiresult = api.hosts.update(command, hostResults[0]['id'])
-        print apiresult
+        #needs to run twice for some reason
+        apiresult = api.hosts.update({'build':True}, int(hostResults[0]['id']))
+        apiresult = api.hosts.update({'build':True}, int(hostResults[0]['id']))
         result = "Host '%s' successfully set to build mode" % hostName
     return result
 

@@ -49,7 +49,6 @@ def rebuildVMs():
             print "Finished unsuccesfully, aborting"
             sys.exit(99)
         print "   -", result
-        sys.exit(99)
         print " - Connect to Puppetmaster"
         puppet_conn = puppet.Puppet(host=vm_config.puppetmaster_address, port=vm_config.puppetmaster_port, key_file='./ssl/api-key.pem', cert_file='./ssl/api-cert.pem')
         print "   - Clear certificate of %s" % vm_info['vm_fqdn']
