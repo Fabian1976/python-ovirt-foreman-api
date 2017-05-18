@@ -92,15 +92,16 @@ def destroyVMs():
         print " - Connect to zookeeper"
         zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
         print " - Zookeeper records"
-        print "   - Get ossec server IP"
-        ossecserver, nodeStats = api_zookeeper.getValue(zookeeper_conn, zk_base_path + '/' + vm_info['puppet_environment'] + '/defaults/core::profile::ossec::client::ossec_server')
-        print "   - Delete zookeeper ossec auth"
-        zk_path = zk_base_path + '/production/nodes/' + ossecserver + '/client-keys/' + vm_info['vm_fqdn']
-        result = api_zookeeper.deleteValue(zookeeper_conn, zk_path, recursive=True)
-        if result != "Succesfully deleted path '%s'" % zk_path:
-            print result
-            print "Finished unsuccesfully, aborting"
-            sys.exit(99)
+        if vm_info['ossec_in_env'] == 1:
+            print "   - Get ossec server IP"
+            ossecserver, nodeStats = api_zookeeper.getValue(zookeeper_conn, zk_base_path + '/' + vm_info['puppet_environment'] + '/defaults/core::profile::ossec::client::ossec_server')
+            print "   - Delete zookeeper ossec auth"
+            zk_path = zk_base_path + '/production/nodes/' + ossecserver + '/client-keys/' + vm_info['vm_fqdn']
+            result = api_zookeeper.deleteValue(zookeeper_conn, zk_path, recursive=True)
+            if result != "Succesfully deleted path '%s'" % zk_path:
+                print result
+                print "Finished unsuccesfully, aborting"
+                sys.exit(99)
         print "   - Delete zookeeper puppet node"
         zk_path = zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn']
         result = api_zookeeper.deleteValue(zookeeper_conn, zk_path, recursive=True)
