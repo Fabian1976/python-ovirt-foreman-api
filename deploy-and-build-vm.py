@@ -44,14 +44,15 @@ import hashlib
 
 def prerequisites():
     #Check if DSC share is mounted
-    if not os.path.ismount(wds_mount):
-        print "DSC share not mounted. Cannot continue"
-        sys.exit(99)
+#    if not os.path.ismount(wds_mount):
+#        print "DSC share not mounted. Cannot continue"
+#        sys.exit(99)
     #Check if puppetmaster is reachable
     #Check if Foreman is reachable
     #Check if hypervisor is reachable
     #Check if Zookeeper is reachable
     #Check if IPA is reachable
+    pass
 
 def create_ossec_key(zookeeper_conn, hostname, puppet_environment, ip_address):
     agent_seed = 'xaeS7ahf'
@@ -136,7 +137,7 @@ def createVMs():
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 result = api_ovirt.createGuest(hypervisor_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
             else:
-                result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_info['vm_fqdn'], vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'])
+                result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_info['vm_fqdn'], vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'], vm_info['vm_network_type'])
             if result != "Succesfully created guest: " + vm_info['vm_fqdn']:
                 print result
                 print "Finished unsuccesfully, aborting"
@@ -192,7 +193,7 @@ def createVMs():
                     print "Finished unsuccesfully, aborting"
                     sys.exit(99)
                 print '   -', result
-            print "   Storing provisioning info"
+            print "   - Storing provisioning info"
             store_provisioning(zookeeper_conn)
             print " - Disconnect from zookeeper"
             api_zookeeper.disconnect(zookeeper_conn)
