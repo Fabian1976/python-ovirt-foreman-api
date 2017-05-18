@@ -54,6 +54,8 @@ vm_disks = 16
 vm_purpose = VM to test something
 #network to assign
 vm_networks = vlan-1011
+#Network type. standard or dvs (distributed vswitch). Defaults to standard
+vm_network_type = standard
 #IP address (optional. Currently not needed for Linux VM's but mandatory for Windows VM's)
 #vm_ipaddress = 127.0.0.1
 #MAC address of interface (only needs to be provided when VM allready exists)
@@ -83,7 +85,10 @@ foreman_subnet = LOCAL
 #Partition layout
 foreman_ptable = Kickstart default
 
+#Start the VM after creation
 startup_after_creation = 1
+#deploy the VM using WDS as DHCP
+deploy_via_wds = 1
 
 #Puppet environment (optional, defaults to production)
 puppet_environment = production

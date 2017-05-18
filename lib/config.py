@@ -187,6 +187,11 @@ class Config:
                     print "No VLAN provided. You can still access the VM, but only through the console."
                     vm_list[section]['vm_networks'] = []
                 try:
+                    vm_list[section]['vm_network_type'] = self.config.get(section, 'vm_network_type').lower()
+                except:
+                    print "No network_type provided. Assuming 'standard' (NOT distributed v-switch)"
+                    vm_list[section]['vm_network_type'] = 'standard'
+                try:
                     vm_list[section]['vm_macaddress'] = self.config.get(section, 'vm_macaddress')
                 except:
                     if vm_list[section]['vm_exists'] == 1:
