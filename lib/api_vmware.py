@@ -34,12 +34,20 @@ def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ve
     if guest_dc_folder == '':
         vmf_mor = dc_props.vmFolder._obj
     else:
+        #First get all folders from root
         folders = host_con._retrieve_properties_traversal(property_names=['name'], from_node=dc_mor, obj_type='Folder')
-        for f in folders:
-            if f.PropSet[0].Val == guest_dc_folder:
-                vmf_mor = f.Obj
-                break
-        if not vmf_mor:
+
+        subfolders = guest_dc_folder.split('/')
+        found_folder = []
+        for sf in subfolders:
+            for f in folders:
+                if f.PropSet[0].Val == sf:
+                    #Get subfolders from found parent folder
+                    folders = host_con._retrieve_properties_traversal(property_names=['name'], from_node=f.Obj, obj_type='Folder')
+                    found_folder.append(str(f.PropSet[0].Val))
+        if found_folder == subfolders:
+            vmf_mor = folders[0].Obj
+        else:
             print "Datacenter folder '%s' not found. Placing VM in root folder of Datacenter '%s'" % (guest_dc_folder, guest_dc)
             vmf_mor = dc_props.vmFolder._obj
     #get hostfolder MOR
