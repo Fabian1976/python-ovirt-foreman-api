@@ -15,6 +15,8 @@ freeipa_password = <base64 simplecrypt encrypted password>
 vm_type = other
 #shared disks. When vm_type = oracle-rac, shared disks need to be created. When vm_type = other, this is ignored
 shared_disks = 4, 1, 1, 4, 4, 6, 15, 15, 6, 4
+#use FQDN or just the name
+use_fqdn_as_name = 0
 
 #name of the vm
 [servername]
@@ -48,6 +50,8 @@ vm_datastore = poc-datastore1
 vm_memory = 2048
 #number of virtual CPU's
 vm_cpus = 1
+#number of cores per CPU
+vm_cores_per_cpu = 2
 #disk space in GB
 vm_disks = 16
 #purpose of the guest (description)
