@@ -56,20 +56,25 @@ def destroyVMs():
             hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
         else:
             hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+        #determine how to name VM
+        if vm_config.use_fqdn_as_name == 0:
+            vm_name = vm
+        else:
+            vm_name = vm_info['vm_fqdn']
 
-        print "*" * sum((12, len(vm_info['vm_fqdn'])))
-        print "***** " + vm_info['vm_fqdn'] + " *****"
-        print "*" * sum((12, len(vm_info['vm_fqdn'])))
+        print "*" * sum((12, len(vm_name)))
+        print "***** " + vm_name + " *****"
+        print "*" * sum((12, len(vm_name)))
 
         if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-            result = api_ovirt.destroyGuest(hypervisor_conn, vm_info['vm_fqdn'])
+            result = api_ovirt.destroyGuest(hypervisor_conn, vm_name)
         else:
-            result = api_vmware.destroyGuest(hypervisor_conn, vm_info['vm_fqdn'])
-        if result != "Succesfully removed guest: " + vm_info['vm_fqdn']:
-            print result
-            print "Finished unsuccesfully, aborting"
-            hypervisor_conn.disconnect()
-            sys.exit(99)
+            result = api_vmware.destroyGuest(hypervisor_conn, vm_name)
+#        if result != "Succesfully removed guest: " + vm_name:
+#            print result
+#            print "Finished unsuccesfully, aborting"
+#            hypervisor_conn.disconnect()
+#            sys.exit(99)
         print " -", result
 
         print " - Connect to Foreman"
@@ -113,10 +118,16 @@ def destroyVMs():
         #delete shared disks from first vm
         for vm in sorted(vm_config.vm_list.keys()):
             vm_info = vm_config.vm_list[vm]
+            #determine how to name VM
+            if vm_config.use_fqdn_as_name == 0:
+                vm_name = vm
+            else:
+                vm_name = vm_info['vm_fqdn']
+
             disk_counter = 1
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 for disk in vm_config.shared_disks:
-                    api_ovirt.deleteDisk(hypervisor_conn, vm_info['vm_fqdn']+'_racdisk'+str(disk_counter).zfill(2))
+                    api_ovirt.deleteDisk(hypervisor_conn, vm_name+'_racdisk'+str(disk_counter).zfill(2))
                     disk_counter += 1
             break
 

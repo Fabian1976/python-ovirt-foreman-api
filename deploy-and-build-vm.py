@@ -114,18 +114,24 @@ def createVMs():
                 hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
             else:
                 hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+            #determine how to name VM
+            if vm_config.use_fqdn_as_name == 0:
+                vm_name = vm
+            else:
+                vm_name = vm_info['vm_fqdn']
 
-            print "*" * sum((12, len(vm_info['vm_fqdn'])))
-            print "***** " + vm_info['vm_fqdn'] + " *****"
-            print "*" * sum((12, len(vm_info['vm_fqdn'])))
+            print "*" * sum((12, len(vm_name)))
+            print "***** " + vm_name + " *****"
+            print "*" * sum((12, len(vm_name)))
 
             print " - Create VM on hypervisor"
             print "   - hypervisor:", vm_info["hypervisor"]
             print "   - hypervisor type:", vm_info['hypervisor_type']
             print "   - datastore:", vm_info["vm_datastore"]
-            print "   - name:", vm_info['vm_fqdn']
+            print "   - name:", vm_name
             print "   - domain:", vm_info['vm_domain']
             print "   - #cpu:", vm_info["vm_cpus"]
+            print "   - #cores per cpu:", vm_info['vm_cores_per_cpu']
             print "   - memory:", vm_info["vm_memory"],"MB"
             print "   - disks:"
             for disk in vm_info["vm_disks"]:
@@ -134,11 +140,12 @@ def createVMs():
             for network in vm_info['vm_networks']:
                 print "     - " + network
             print ""
+
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-                result = api_ovirt.createGuest(hypervisor_conn, vm_info["vm_cluster"], vm_info['vm_fqdn'], vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
+                result = api_ovirt.createGuest(hypervisor_conn, vm_info["vm_cluster"], vm_name, vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
             else:
-                result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_info['vm_fqdn'], vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'], vm_info['vm_network_type'])
-            if result != "Succesfully created guest: " + vm_info['vm_fqdn']:
+                result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_name, vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), int(vm_info['vm_cores_per_cpu']), vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'], vm_info['vm_network_type'])
+            if result != "Succesfully created guest: " + vm_name:
                 print result
                 print "Finished unsuccesfully, aborting"
                 hypervisor_conn.disconnect()
@@ -147,9 +154,9 @@ def createVMs():
 
             print " - Retrieve MAC address to pass to foreman"
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-                vm_info['vm_macaddress'] = api_ovirt.getMac(hypervisor_conn, vm_info['vm_fqdn'])
+                vm_info['vm_macaddress'] = api_ovirt.getMac(hypervisor_conn, vm_name)
             else:
-                vm_info['vm_macaddress'] = api_vmware.getMac(hypervisor_conn, vm_info['vm_fqdn'])
+                vm_info['vm_macaddress'] = api_vmware.getMac(hypervisor_conn, vm_name)
             print "   - Found MAC: %s" % vm_info['vm_macaddress']
         else:
             print " - Using MAC address: %s" % vm_info['vm_macaddress']
@@ -217,9 +224,15 @@ def createVMs():
     #set PXEboot for hosts
     if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
         for vm in vm_config.vm_list:
+            #determine how VM is named
+            if vm_config.use_fqdn_as_name == 0:
+                vm_name = vm
+            else:
+                vm_name = vm_info['vm_fqdn']
+
             vm_info = vm_config.vm_list[vm]
             hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-            api_ovirt.setPXEBootSecond(hypervisor_conn, vm_info['vm_fqdn'])
+            api_ovirt.setPXEBootSecond(hypervisor_conn, vm_name)
     hypervisor_conn.disconnect()
 
     #create shareable disks if vm_type = oracle-rac
@@ -228,38 +241,56 @@ def createVMs():
         disk_counter = 1
         for vm in sorted(vm_config.vm_list.keys()):
             vm_info = vm_config.vm_list[vm]
+            #determine how VM is named
+            if vm_config.use_fqdn_as_name == 0:
+                vm_name = vm
+            else:
+                vm_name = vm_info['vm_fqdn']
+
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
                 for disk in vm_config.shared_disks:
-                    api_ovirt.createDisk(hypervisor_conn, vm_info['vm_fqdn'], vm_info['vm_datastore'], disk, disk_format='raw', thin_provision=False, shareable=True, disk_name=vm_info['vm_fqdn']+'_racdisk'+str(disk_counter).zfill(2))
+                    api_ovirt.createDisk(hypervisor_conn, vm_name, vm_info['vm_datastore'], disk, disk_format='raw', thin_provision=False, shareable=True, disk_name=vm_name+'_racdisk'+str(disk_counter).zfill(2))
                     disk_counter += 1
-            host_disks = vm_info['vm_fqdn']
+            host_disks = vm_name
             break #Disk only need to be created on the first VM. So break the loop
         #attach shareable disks to other hosts
         for vm in vm_config.vm_list:
             vm_info = vm_config.vm_list[vm]
-            if vm_info['vm_fqdn'] != host_disks:
+            #determine how VM is named
+            if vm_config.use_fqdn_as_name == 0:
+                vm_name = vm
+            else:
+                vm_name = vm_info['vm_fqdn']
+
+            if vm_name != host_disks:
                 disk_counter = 1
                 for disk in vm_config.shared_disks:
-                    api_ovirt.attachDisk(hypervisor_conn, vm_info['vm_fqdn'], host_disks+'_racdisk'+str(disk_counter).zfill(2))
+                    api_ovirt.attachDisk(hypervisor_conn, vm_name, host_disks+'_racdisk'+str(disk_counter).zfill(2))
                     disk_counter += 1
         hypervisor_conn.disconnect()
 
     #start hosts
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
+        #determine how VM is named
+        if vm_config.use_fqdn_as_name == 0:
+            vm_name = vm
+        else:
+            vm_name = vm_info['vm_fqdn']
+
         if vm_info['startup_after_creation']:
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-                print " - Starting VM %s" % vm_info['vm_fqdn']
-                api_ovirt.powerOnGuest(hypervisor_conn, vm_info['vm_fqdn'])
+                print " - Starting VM %s" % vm_name
+                api_ovirt.powerOnGuest(hypervisor_conn, vm_name)
                 if vm_info['override_parameters']:
                     print " - Additional parameters provided. This may take a while"
                     api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
             else:
                 hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-                print " - Starting VM %s" % vm_info['vm_fqdn']
-                api_vmware.powerOnGuest(hypervisor_conn, vm_info['vm_fqdn'])
+                print " - Starting VM %s" % vm_name
+                api_vmware.powerOnGuest(hypervisor_conn, vm_name)
                 if vm_info['override_parameters']:
                     print " - Additional parameters provided. This may take a while"
                     api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])

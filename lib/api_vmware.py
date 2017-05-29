@@ -20,7 +20,7 @@ def connectToHost(host,host_user,host_pw):
     except VIApiException, err:
         print "Cannot connect to host: '%s', error message: %s" %(host,err)    
 
-def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ver,guest_mem,guest_cpu,guest_iso,guest_os,guest_disks_gb,guest_ds,guest_networks,network_type='standard'):
+def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ver,guest_mem,guest_cpu,guest_cores,guest_iso,guest_os,guest_disks_gb,guest_ds,guest_networks,network_type='standard'):
     #get dc MOR from list
     dc_list=[k for k,v in host_con.get_datacenters().items() if v==guest_dc]
     if dc_list:
@@ -136,7 +136,8 @@ def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ve
     config.set_element_name(guest_name) 
     config.set_element_memoryMB(guest_mem) 
     config.set_element_memoryHotAddEnabled(True)
-    config.set_element_numCPUs(guest_cpu) 
+    config.set_element_numCoresPerSocket(guest_cores)
+    config.set_element_numCPUs(guest_cpu*guest_cores)
     config.set_element_guestId(guest_os)
     config.set_element_cpuHotAddEnabled(True)
     
@@ -182,6 +183,7 @@ def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ve
     disk_backing=VI.ns0.VirtualDiskFlatVer2BackingInfo_Def("disk_backing").pyclass() 
     disk_backing.set_element_fileName(ds_vol_name) 
     disk_backing.set_element_diskMode("persistent") 
+    disk_backing.set_element_eagerlyScrub(True)
     disk_ctlr.set_element_key(0) 
     disk_ctlr.set_element_controllerKey(disk_ctrl_key) 
     disk_ctlr.set_element_unitNumber(0) 

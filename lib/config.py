@@ -76,6 +76,10 @@ class Config:
                     except:
                         print "No shared disks specified for vm_type oracle-rac. Cannot continue"
                         sys.exit(99)
+                try:
+                    self.use_fqdn_as_name = int(self.config.get(section, 'use_fqdn_as_name'))
+                except:
+                    self.use_fqdn_as_name = 1
             else:
                 vm_list[section] = {}
                 try:
@@ -84,7 +88,7 @@ class Config:
                     print "No osfamily specified (linux or windows). Cannot continue"
                     sys.exit(99)
                 try:
-                    vm_list[section]['vm_domain'] = self.config.get(section, 'vm_domain')
+                    vm_list[section]['vm_domain'] = self.config.get(section, 'vm_domain').lower()
                 except:
                     print "No domain provided."
                     vm_list[section]['vm_domain'] = ''
@@ -93,9 +97,9 @@ class Config:
                 except:
                     vm_list[section]['vm_exists'] = 0
                 if vm_list[section]['vm_domain'] == '':
-                    vm_list[section]['vm_fqdn'] = section
+                    vm_list[section]['vm_fqdn'] = section.lower()
                 else:
-                   vm_list[section]['vm_fqdn'] = section + '.' + vm_list[section]['vm_domain']
+                   vm_list[section]['vm_fqdn'] = section.lower() + '.' + vm_list[section]['vm_domain']
                 try:
                     vm_list[section]['vm_cluster'] = self.config.get(section, 'vm_cluster')
                 except:
@@ -170,6 +174,11 @@ class Config:
                 except:
                     print "No number of cpu's provided. Assuming default of 1"
                     vm_list[section]['vm_cpus'] = 1
+                try:
+                    vm_list[section]['vm_cores_per_cpu'] = self.config.get(section, 'vm_cores_per_cpu')
+                except:
+                    print "No number of cores per cpu's provided. Assuming default of 1"
+                    vm_list[section]['vm_cores_per_cpu'] = 1
                 try:
                     vm_list[section]['vm_disks'] = self.config.get(section, 'vm_disks').split(',')
                     vm_list[section]['vm_disks'] = [disk.strip() for disk in vm_list[section]['vm_disks']]
