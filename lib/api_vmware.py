@@ -103,6 +103,7 @@ def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ve
             net_name = guest_networks[0]
             net_names = None
         else:
+            net_name = None
             net_names = guest_networks
     else:
         for net in config_target.Network: 
@@ -215,87 +216,141 @@ def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ve
             unit_number += 1
 
     #add a network controller
-    if network_type == 'dvs':
-        # networkFolder managed object reference
-        nf_mor = dc_props.networkFolder._obj
-        dvpg_mors = host_con._retrieve_properties_traversal(property_names=['name','key'],from_node=nf_mor, obj_type='DistributedVirtualPortgroup')
-        # Get the portgroup managed object.
-        dvpg_mor = None
-        for dvpg in dvpg_mors:
-            if dvpg_mor:
-                break
-            for p in dvpg.PropSet:
-                if p.Name == "name" and p.Val == net_name:
-                    dvpg_mor = dvpg
-                if dvpg_mor:
-                    break
-        if dvpg_mor == None:
-            return "Didn't find the network '%s', exiting now" % (net_name)
-
-        # Get the portgroup key
-        portgroupKey = None
-        for p in dvpg_mor.PropSet:
-            if p.Name == "key":
-                portgroupKey = p.Val
-
-        # Grab the dvswitch uuid and portgroup properties
-        dvswitch_mors = host_con._retrieve_properties_traversal(property_names=['uuid','portgroup'], from_node=nf_mor, obj_type='DistributedVirtualSwitch')
-
-        dvswitch_mor = None
-        # Get the appropriate dvswitches managed object
-        for dvswitch in dvswitch_mors:
-            if dvswitch_mor:
-                break
-            for p in dvswitch.PropSet:
-                if p.Name == "portgroup":
-                    pg_mors = p.Val.ManagedObjectReference
-                    for pg_mor in pg_mors:
-                        if dvswitch_mor:
-                            break
-                        key_mor = host_con._get_object_properties(pg_mor, property_names=['key'])
-                        for key in key_mor.PropSet:
-                            if key.Val == portgroupKey:
-                                dvswitch_mor = dvswitch
-        # Get the switches uuid
-        dvswitch_uuid = None
-        for p in dvswitch_mor.PropSet:
-            if p.Name == "uuid":
-                dvswitch_uuid = p.Val
-
-    nic_spec = config.new_deviceChange() 
-    if net_name: 
-        nic_spec.set_element_operation("add") 
-        nic_ctlr = VI.ns0.VirtualVmxnet3_Def("nic_ctlr").pyclass() 
-        if network_type == 'standard':
-            # Standard switch
-            nic_backing = VI.ns0.VirtualEthernetCardNetworkBackingInfo_Def("nic_backing").pyclass()
-            nic_backing.set_element_deviceName(net_name)
-        elif network_type == 'dvs':
-            nic_backing_port = VI.ns0.DistributedVirtualSwitchPortConnection_Def("nic_backing_port").pyclass()
-            nic_backing_port.set_element_switchUuid(dvswitch_uuid)
-            nic_backing_port.set_element_portgroupKey(portgroupKey)
-            nic_backing = VI.ns0.VirtualEthernetCardDistributedVirtualPortBackingInfo_Def("nic_backing").pyclass()
-            nic_backing.set_element_port(nic_backing_port)
-        else:
-            return "Unknown network type '%s'" % network_type
-        nic_ctlr.set_element_addressType("generated") 
-        nic_ctlr.set_element_backing(nic_backing) 
-        nic_ctlr.set_element_key(4) 
-        nic_spec.set_element_device(nic_ctlr) 
-        devices.append(nic_spec)
-        
     if net_names:
         for net_name in net_names:
+            nic_spec = config.new_deviceChange()
             nic_spec.set_element_operation("add")
             nic_ctlr = VI.ns0.VirtualVmxnet3_Def("nic_ctlr").pyclass()
-            #nic_ctlr = VI.ns0.VirtualPCNet32_Def("nic_ctlr").pyclass()
-            nic_backing = VI.ns0.VirtualEthernetCardNetworkBackingInfo_Def("nic_backing").pyclass()
-            nic_backing.set_element_deviceName(net_name)
+            if network_type == 'dvs':
+                # networkFolder managed object reference
+                nf_mor = dc_props.networkFolder._obj
+                dvpg_mors = host_con._retrieve_properties_traversal(property_names=['name','key'],from_node=nf_mor, obj_type='DistributedVirtualPortgroup')
+                # Get the portgroup managed object.
+                dvpg_mor = None
+                for dvpg in dvpg_mors:
+                    if dvpg_mor:
+                        break
+                    for p in dvpg.PropSet:
+                        if p.Name == "name" and p.Val == net_name:
+                            dvpg_mor = dvpg
+                        if dvpg_mor:
+                            break
+                if dvpg_mor == None:
+                    return "Didn't find the network '%s', exiting now" % (net_name)
+
+                # Get the portgroup key
+                portgroupKey = None
+                for p in dvpg_mor.PropSet:
+                    if p.Name == "key":
+                        portgroupKey = p.Val
+
+                # Grab the dvswitch uuid and portgroup properties
+                dvswitch_mors = host_con._retrieve_properties_traversal(property_names=['uuid','portgroup'], from_node=nf_mor, obj_type='DistributedVirtualSwitch')
+
+                dvswitch_mor = None
+                # Get the appropriate dvswitches managed object
+                for dvswitch in dvswitch_mors:
+                    if dvswitch_mor:
+                        break
+                    for p in dvswitch.PropSet:
+                        if p.Name == "portgroup":
+                            pg_mors = p.Val.ManagedObjectReference
+                            for pg_mor in pg_mors:
+                                if dvswitch_mor:
+                                    break
+                                key_mor = host_con._get_object_properties(pg_mor, property_names=['key'])
+                                for key in key_mor.PropSet:
+                                    if key.Val == portgroupKey:
+                                        dvswitch_mor = dvswitch
+                # Get the switches uuid
+                dvswitch_uuid = None
+                for p in dvswitch_mor.PropSet:
+                    if p.Name == "uuid":
+                        dvswitch_uuid = p.Val
+                #create the device
+                nic_backing_port = VI.ns0.DistributedVirtualSwitchPortConnection_Def("nic_backing_port").pyclass()
+                nic_backing_port.set_element_switchUuid(dvswitch_uuid)
+                nic_backing_port.set_element_portgroupKey(portgroupKey)
+                nic_backing = VI.ns0.VirtualEthernetCardDistributedVirtualPortBackingInfo_Def("nic_backing").pyclass()
+                nic_backing.set_element_port(nic_backing_port)
+            elif network_type == 'standard':
+                # Standard switch
+                nic_backing = VI.ns0.VirtualEthernetCardNetworkBackingInfo_Def("nic_backing").pyclass()
+                nic_backing.set_element_deviceName(net_name)
+            else:
+                return "Unknown network type '%s'" % network_type
             nic_ctlr.set_element_addressType("generated")
             nic_ctlr.set_element_backing(nic_backing)
             nic_ctlr.set_element_key(4)
             nic_spec.set_element_device(nic_ctlr)
             devices.append(nic_spec)
+    else:
+        nic_spec = config.new_deviceChange()
+        nic_spec.set_element_operation("add")
+        nic_ctlr = VI.ns0.VirtualVmxnet3_Def("nic_ctlr").pyclass()
+        if network_type == 'dvs':
+            # networkFolder managed object reference
+            nf_mor = dc_props.networkFolder._obj
+            dvpg_mors = host_con._retrieve_properties_traversal(property_names=['name','key'],from_node=nf_mor, obj_type='DistributedVirtualPortgroup')
+            # Get the portgroup managed object.
+            dvpg_mor = None
+            for dvpg in dvpg_mors:
+                if dvpg_mor:
+                    break
+                for p in dvpg.PropSet:
+                    if p.Name == "name" and p.Val == net_name:
+                        dvpg_mor = dvpg
+                    if dvpg_mor:
+                        break
+            if dvpg_mor == None:
+                return "Didn't find the network '%s', exiting now" % (net_name)
+
+            # Get the portgroup key
+            portgroupKey = None
+            for p in dvpg_mor.PropSet:
+                if p.Name == "key":
+                    portgroupKey = p.Val
+
+            # Grab the dvswitch uuid and portgroup properties
+            dvswitch_mors = host_con._retrieve_properties_traversal(property_names=['uuid','portgroup'], from_node=nf_mor, obj_type='DistributedVirtualSwitch')
+
+            dvswitch_mor = None
+            # Get the appropriate dvswitches managed object
+            for dvswitch in dvswitch_mors:
+                if dvswitch_mor:
+                    break
+                for p in dvswitch.PropSet:
+                    if p.Name == "portgroup":
+                        pg_mors = p.Val.ManagedObjectReference
+                        for pg_mor in pg_mors:
+                            if dvswitch_mor:
+                                break
+                            key_mor = host_con._get_object_properties(pg_mor, property_names=['key'])
+                            for key in key_mor.PropSet:
+                                if key.Val == portgroupKey:
+                                    dvswitch_mor = dvswitch
+            # Get the switches uuid
+            dvswitch_uuid = None
+            for p in dvswitch_mor.PropSet:
+                if p.Name == "uuid":
+                    dvswitch_uuid = p.Val
+            #create the device
+            nic_backing_port = VI.ns0.DistributedVirtualSwitchPortConnection_Def("nic_backing_port").pyclass()
+            nic_backing_port.set_element_switchUuid(dvswitch_uuid)
+            nic_backing_port.set_element_portgroupKey(portgroupKey)
+            nic_backing = VI.ns0.VirtualEthernetCardDistributedVirtualPortBackingInfo_Def("nic_backing").pyclass()
+            nic_backing.set_element_port(nic_backing_port)
+        elif network_type == 'standard':
+            # Standard switch
+            nic_backing = VI.ns0.VirtualEthernetCardNetworkBackingInfo_Def("nic_backing").pyclass()
+            nic_backing.set_element_deviceName(net_name)
+        else:
+            return "Unknown network type '%s'" % network_type
+        nic_ctlr.set_element_addressType("generated")
+        nic_ctlr.set_element_backing(nic_backing)
+        nic_ctlr.set_element_key(4)
+        nic_spec.set_element_device(nic_ctlr)
+        devices.append(nic_spec)
     
     #create vm request
     config.set_element_deviceChange(devices) 
