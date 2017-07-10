@@ -65,7 +65,7 @@ def __get_dvsuuid_portgroup(host_con, dc_props, net_name):
             dvswitch_uuid = p.Val
     return (dvswitch_uuid, portgroupKey)
 
-def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ver,guest_mem,guest_cpu,guest_cores,guest_iso,guest_os,guest_disks_gb,guest_ds,guest_networks,network_type='standard'):
+def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ver,guest_mem,guest_cpu,guest_cores,guest_purpose,guest_iso,guest_os,guest_disks_gb,guest_ds,guest_networks,network_type='standard'):
     #get dc MOR from list
     dc_list=[k for k,v in host_con.get_datacenters().items() if v==guest_dc]
     if dc_list:
@@ -186,6 +186,7 @@ def createGuest(host_con,guest_dc,guest_dc_folder,guest_host,guest_name,guest_ve
     config.set_element_numCPUs(guest_cpu*guest_cores)
     config.set_element_guestId(guest_os)
     config.set_element_cpuHotAddEnabled(True)
+    config.set_element_annotation(guest_purpose)
     
     #create devices
     devices = [] 
@@ -343,9 +344,16 @@ def getMac(host_con,guest_name):
             if mac:
                 return mac
 
-    for v in vm.get_property("devices").values():
-        if v.get('macAddress'):
-            return v.get('macAddress')
+    #for v in vm.get_property("devices").values():
+    #    if v.get('macAddress'):
+    #        return v.get('macAddress')
+    
+    devs = vm.get_property('devices')
+    result = []
+    for dev in devs:
+       if devs[dev]['type'] == 'VirtualVmxnet3':
+          result.append(devs[dev]['macAddress'])
+    return result
 
 def powerOnGuest(host_con,guest_name):
     try:
