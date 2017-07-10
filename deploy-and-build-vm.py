@@ -144,7 +144,7 @@ def createVMs():
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 result = api_ovirt.createGuest(hypervisor_conn, vm_info["vm_cluster"], vm_name, vm_info["vm_purpose"], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), vm_info["vm_disks"], vm_info["vm_datastore"], vm_info["vm_networks"])
             else:
-                result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_name, vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), int(vm_info['vm_cores_per_cpu']), vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'], vm_info['vm_network_type'])
+                result = api_vmware.createGuest(hypervisor_conn, vm_info['vm_datacenter'], vm_info['vm_datacenter_folder'], vm_info['hypervisor_host'], vm_name, vm_info['hypervisor_version'], int(vm_info["vm_memory"]), int(vm_info["vm_cpus"]), int(vm_info['vm_cores_per_cpu']), vm_info["vm_purpose"], vm_info['vm_iso'], vm_info['vm_os'], vm_info['vm_disks'], vm_info["vm_datastore"], vm_info['vm_networks'], vm_info['vm_network_type'])
             if result != "Succesfully created guest: " + vm_name:
                 print result
                 print "Finished unsuccesfully, aborting"
@@ -155,9 +155,11 @@ def createVMs():
             print " - Retrieve MAC address to pass to foreman"
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 vm_info['vm_macaddress'] = api_ovirt.getMac(hypervisor_conn, vm_name)
+                print "   - Found MAC: %s" % vm_info['vm_macaddress']
             else:
                 vm_info['vm_macaddress'] = api_vmware.getMac(hypervisor_conn, vm_name)
-            print "   - Found MAC: %s" % vm_info['vm_macaddress']
+                for macaddress in vm_info['vm_macaddress']:
+                   print "   - Found MAC: %s" % macaddress
         else:
             print " - Using MAC address: %s" % vm_info['vm_macaddress']
         if vm_info['osfamily'] == 'linux':
@@ -302,14 +304,14 @@ def write_wds_file(vm, vm_info):
     print "   - os          = %s" % vm_info['osfamily']
     print "   - ip          = %s" % vm_info['vm_ipaddress']
     print "   - mac         = %s" % vm_info['vm_macaddress']
-    print "   - bootserver  = %s" % '192.168.10.32'
+    print "   - bootserver  = %s" % '10.128.96.49'
     print "   - environment = %s" % vm_info['puppet_environment']
     f = open(wds_mount + '/' + vm + '.start', "w")
     f.write("domain      = %s\r\n" % vm_info['vm_domain'])
     f.write("os          = %s\r\n" % vm_info['osfamily'])
     f.write("ip          = %s\r\n" % vm_info['vm_ipaddress'])
     f.write("mac         = %s\r\n" % vm_info['vm_macaddress'])
-    f.write("bootserver  = %s\r\n" % '192.168.10.32')
+    f.write("bootserver  = %s\r\n" % '10.128.96.49')
     f.write("environment = %s\r\n" % vm_info['puppet_environment'])
     f.close()
 
