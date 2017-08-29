@@ -52,6 +52,9 @@ def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organizati
         sys.exit(1)
     
     # Only build interface_attributs for additional interfaces. first element is primairy interface , second is the start for interface_attribuites 
+    #check if mac_address is string (ovirt) or array (vmware)
+    if isinstance(guest_mac_address, str):
+        guest_mac_address = [guest_mac_address]
     interface_attributes = []  
     if len(guest_subnet_list) > 1:
        for i in xrange(1,len(guest_subnet_list)):
