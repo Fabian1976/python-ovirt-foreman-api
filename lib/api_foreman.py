@@ -81,7 +81,7 @@ def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organizati
                                    }
                             )
         # Found single NIC config
-        elif (len(guest_ip_address_list)<=1): 
+        elif (len(guest_ip_address_list)==1): 
             print "Found IP Address : %s , continue" % guest_ip_address_list[0]
             api.hosts.create(host={'name': guest_name, 
                                    'mac': guest_mac_address[0], 
