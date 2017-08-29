@@ -37,7 +37,10 @@ def createGuest(api, guest_name, guest_hostgroup, guest_domain, guest_organizati
         sys.exit(1)
 
     # guest_ip_address passed as string , creating a list for itteration
-    guest_ip_address_list =  guest_ip_address.split(",")
+    if guest_ip_address:
+        guest_ip_address_list =  guest_ip_address.split(",")
+    else:
+        guest_ip_address_list = []
  
     guest_environment_id = getEnvironmentId(api, guest_environment)
     if guest_environment_id == 0:
