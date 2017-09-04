@@ -284,18 +284,18 @@ def createVMs():
         if vm_info['startup_after_creation']:
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+                if vm_info['override_parameters']:
+                    print " - Additional parameters provided. This may take a while"
+                    api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
                 print " - Starting VM %s" % vm_name
                 api_ovirt.powerOnGuest(hypervisor_conn, vm_name)
-                if vm_info['override_parameters']:
-                    print " - Additional parameters provided. This may take a while"
-                    api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
             else:
                 hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-                print " - Starting VM %s" % vm_name
-                api_vmware.powerOnGuest(hypervisor_conn, vm_name)
                 if vm_info['override_parameters']:
                     print " - Additional parameters provided. This may take a while"
                     api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
+                print " - Starting VM %s" % vm_name
+                api_ovirt.powerOnGuest(hypervisor_conn, vm_name)
             hypervisor_conn.disconnect()
 
 def write_wds_file(vm, vm_info):
