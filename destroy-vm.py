@@ -16,7 +16,8 @@ import collections #to order dict by key
 import puppet #REST API for puppetserver
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/lib')
-import api_ovirt
+#import api_ovirt #rhev/ovirt 3
+import api_ovirt4 as api_ovirt #rhev/ovirt 4
 import api_foreman
 import api_zookeeper
 import api_vmware
@@ -73,7 +74,7 @@ def destroyVMs():
 #        if result != "Succesfully removed guest: " + vm_name:
 #            print result
 #            print "Finished unsuccesfully, aborting"
-#            hypervisor_conn.disconnect()
+#            hypervisor_conn.close()
 #            sys.exit(99)
         print " -", result
 
@@ -132,7 +133,7 @@ def destroyVMs():
             break
 
     print " - Disconnect from hypervisor"
-    hypervisor_conn.disconnect()
+    hypervisor_conn.close()
     print " - Disconnect from zookeeper"
     api_zookeeper.disconnect(zookeeper_conn)
 

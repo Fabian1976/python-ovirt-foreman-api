@@ -19,7 +19,7 @@ import getpass
 import collections #to order dict by key
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/lib')
-import api_ovirt
+import api_ovirt4 as api_ovirt
 import api_vmware
 import api_foreman
 import api_zookeeper
@@ -148,7 +148,7 @@ def createVMs():
             if result != "Succesfully created guest: " + vm_name:
                 print result
                 print "Finished unsuccesfully, aborting"
-                hypervisor_conn.disconnect()
+                hypervisor_conn.close()
                 sys.exit(99)
             print " -", result
 
@@ -222,20 +222,20 @@ def createVMs():
             #exit gracefully if VM allready exists. When VM allready exists, the names don't match (detached mode) and below functions don't work
             sys.exit(0)
     print " - Disconnect from hypervisor"
-    hypervisor_conn.disconnect()
+    hypervisor_conn.close()
     #set PXEboot for hosts
-    if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-        for vm in vm_config.vm_list:
+#    if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
+#        for vm in vm_config.vm_list:
             #determine how VM is named
-            if vm_config.use_fqdn_as_name == 0:
-                vm_name = vm
-            else:
-                vm_name = vm_info['vm_fqdn']
+#            if vm_config.use_fqdn_as_name == 0:
+#                vm_name = vm
+#            else:
+#                vm_name = vm_info['vm_fqdn']
 
-            vm_info = vm_config.vm_list[vm]
-            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-            api_ovirt.setPXEBootSecond(hypervisor_conn, vm_name)
-    hypervisor_conn.disconnect()
+#            vm_info = vm_config.vm_list[vm]
+#            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+#            api_ovirt.setPXEBootSecond(hypervisor_conn, vm_name)
+#    hypervisor_conn.close()
 
     #create shareable disks if vm_type = oracle-rac
     if vm_config.vm_type.lower() == 'oracle-rac':
@@ -270,7 +270,7 @@ def createVMs():
                 for disk in vm_config.shared_disks:
                     api_ovirt.attachDisk(hypervisor_conn, vm_name, host_disks+'_racdisk'+str(disk_counter).zfill(2))
                     disk_counter += 1
-        hypervisor_conn.disconnect()
+        hypervisor_conn.close()
 
     #start hosts
     for vm in vm_config.vm_list:
@@ -296,7 +296,7 @@ def createVMs():
                     api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
                 print " - Starting VM %s" % vm_name
                 api_ovirt.powerOnGuest(hypervisor_conn, vm_name)
-            hypervisor_conn.disconnect()
+            hypervisor_conn.close()
 
 def write_wds_file(vm, vm_info):
     print " - Writing file to WDS pickup location"
