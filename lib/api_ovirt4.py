@@ -36,7 +36,7 @@ def createDisk(connection, vm_name, storage_domain, disk_size, disk_format = 'co
                 shareable = shareable,
                 sparse = thin_provision,
             ),
-            interface = types.DiskInterface.VIRTIO,
+            interface = types.DiskInterface.VIRTIO_SCSI,
             bootable = bootable,
             active = True,
         ),
