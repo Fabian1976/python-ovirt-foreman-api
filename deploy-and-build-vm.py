@@ -306,14 +306,14 @@ def write_wds_file(vm, vm_info):
     print "   - domain      = %s" % vm_info['vm_domain']
     print "   - os          = %s" % vm_info['osfamily']
     print "   - ip          = %s" % vm_info['vm_ipaddress']
-    print "   - mac         = %s" % vm_info['vm_macaddress']
+    print "   - mac         = %s" % vm_info['vm_macaddress'][0]
     print "   - bootserver  = %s" % '10.128.96.49'
     print "   - environment = %s" % vm_info['puppet_environment']
     f = open(wds_mount + '/' + vm + '.start', "w")
     f.write("domain      = %s\r\n" % vm_info['vm_domain'])
     f.write("os          = %s\r\n" % vm_info['osfamily'])
     f.write("ip          = %s\r\n" % vm_info['vm_ipaddress'])
-    f.write("mac         = %s\r\n" % vm_info['vm_macaddress'])
+    f.write("mac         = %s\r\n" % vm_info['vm_macaddress'][0])
     f.write("bootserver  = %s\r\n" % '10.128.96.49')
     f.write("environment = %s\r\n" % vm_info['puppet_environment'])
     f.close()
