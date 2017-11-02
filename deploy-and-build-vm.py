@@ -122,7 +122,7 @@ def createVMs():
 
         if vm_info['vm_exists'] == 0:
             print " - Connect to hypervisor"
-            hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'],vm_info['hypervisor', vm_info['hypervisor_user', simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+            hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'], vm_info['hypervisor'], vm_info['hypervisor_user'], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
             #determine how to name VM
             if vm_config.use_fqdn_as_name == 0:
                 vm_name = vm
@@ -241,7 +241,7 @@ def createVMs():
 #            vm_name = vm_info['vm_fqdn']
 
 #        vm_info = vm_config.vm_list[vm]
-#        hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'],vm_info['hypervisor', vm_info['hypervisor_user', simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+#        hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'], vm_info['hypervisor'], vm_info['hypervisor_user'], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
 #        api_ovirt.setPXEBootSecond(hypervisor_conn, vm_name)
 #    hypervisor_disconnect(hypervisor_conn, vm_info['hypervisor_type'])
 
@@ -294,7 +294,7 @@ def createVMs():
                 api_ovirt.powerOnGuest(hypervisor_conn, vm_name)
             else:
                 api_vmware.powerOnGuest(hypervisor_conn, vm_name)
-            hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'],vm_info['hypervisor', vm_info['hypervisor_user', simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+            hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'], vm_info['hypervisor'], vm_info['hypervisor_user'], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
             if vm_info['override_parameters']:
                 print " - Additional parameters provided. This may take a while"
                 api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
