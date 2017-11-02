@@ -104,16 +104,25 @@ def store_provisioning(zookeeper_conn):
         api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/DateInitialRequest' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), time.strftime("%d-%m-%Y %H:%M:%S"))
         api_zookeeper.storeValue(zookeeper_conn, '/provisioning/%s/%s/%s/RequestInfo/CnfgMnmgmt/roles' % (vm_info['vm_domain'], vm_info['puppet_environment'], vm_info['vm_fqdn']), vm_info['puppet_server_role'])
 
+def hypervisor_connect(hypervisor_type, hypervisor_host, hypervisor_user, hypervisor_password):
+    if hypervisor_type.lower() in ['ovirt', 'rhev']:
+        return api_ovirt.connectToHost(hypervisor_host, hypervisor_user, hypervisor_password)
+    else:
+        return api_vmware.connectToHost(hypervisor_host, hypervisor_user, hypervisor_password)
+
+def hypervisor_disconnect(api, hypervisor_type):
+    if hypervisor_type.lower() in ['ovirt', 'rhev']:
+        api.close()
+    else:
+        api.disconnect()
+
 def createVMs():
     for vm in sorted(vm_config.vm_list.keys()):
         vm_info = vm_config.vm_list[vm]
 
         if vm_info['vm_exists'] == 0:
             print " - Connect to hypervisor"
-            if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-            else:
-                hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+            hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'],vm_info['hypervisor', vm_info['hypervisor_user', simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
             #determine how to name VM
             if vm_config.use_fqdn_as_name == 0:
                 vm_name = vm
@@ -148,7 +157,7 @@ def createVMs():
             if result != "Succesfully created guest: " + vm_name:
                 print result
                 print "Finished unsuccesfully, aborting"
-                hypervisor_conn.close()
+                hypervisor_disconnect(hypervisor_conn, vm_info['hypervisor_type'])
                 sys.exit(99)
             print " -", result
 
@@ -222,20 +231,19 @@ def createVMs():
             #exit gracefully if VM allready exists. When VM allready exists, the names don't match (detached mode) and below functions don't work
             sys.exit(0)
     print " - Disconnect from hypervisor"
-    hypervisor_conn.close()
+    hypervisor_disconnect(hypervisor_conn, vm_info['hypervisor_type'])
     #set PXEboot for hosts
-#    if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-#        for vm in vm_config.vm_list:
-            #determine how VM is named
-#            if vm_config.use_fqdn_as_name == 0:
-#                vm_name = vm
-#            else:
-#                vm_name = vm_info['vm_fqdn']
+#    for vm in vm_config.vm_list:
+#    determine how VM is named
+#        if vm_config.use_fqdn_as_name == 0:
+#            vm_name = vm
+#        else:
+#            vm_name = vm_info['vm_fqdn']
 
-#            vm_info = vm_config.vm_list[vm]
-#            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-#            api_ovirt.setPXEBootSecond(hypervisor_conn, vm_name)
-#    hypervisor_conn.close()
+#        vm_info = vm_config.vm_list[vm]
+#        hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'],vm_info['hypervisor', vm_info['hypervisor_user', simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+#        api_ovirt.setPXEBootSecond(hypervisor_conn, vm_name)
+#    hypervisor_disconnect(hypervisor_conn, vm_info['hypervisor_type'])
 
     #create shareable disks if vm_type = oracle-rac
     if vm_config.vm_type.lower() == 'oracle-rac':
@@ -270,7 +278,7 @@ def createVMs():
                 for disk in vm_config.shared_disks:
                     api_ovirt.attachDisk(hypervisor_conn, vm_name, host_disks+'_racdisk'+str(disk_counter).zfill(2))
                     disk_counter += 1
-        hypervisor_conn.close()
+        hypervisor_disconnect(hypervisor_conn, vm_info['hypervisor_type'])
 
     #start hosts
     for vm in vm_config.vm_list:
@@ -283,20 +291,15 @@ def createVMs():
 
         if vm_info['startup_after_creation']:
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-                hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-                if vm_info['override_parameters']:
-                    print " - Additional parameters provided. This may take a while"
-                    api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
-                print " - Starting VM %s" % vm_name
                 api_ovirt.powerOnGuest(hypervisor_conn, vm_name)
             else:
-                hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-                if vm_info['override_parameters']:
-                    print " - Additional parameters provided. This may take a while"
-                    api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
-                print " - Starting VM %s" % vm_name
-                api_ovirt.powerOnGuest(hypervisor_conn, vm_name)
-            hypervisor_conn.close()
+                api_vmware.powerOnGuest(hypervisor_conn, vm_name)
+            hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'],vm_info['hypervisor', vm_info['hypervisor_user', simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+            if vm_info['override_parameters']:
+                print " - Additional parameters provided. This may take a while"
+                api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
+            print " - Starting VM %s" % vm_name
+            hypervisor_disconnect(hypervisor_conn, vm_info['hypervisor_type'])
 
 def write_wds_file(vm, vm_info):
     print " - Writing file to WDS pickup location"
