@@ -6,7 +6,7 @@ import getpass
 from time import sleep
 
 def main():
-    url='https://poc-ovirtm1.infoplus-ot.ris:443/api'
+    url='https://vm-rhevm01.infoplus-ot.ris:443/api'
     username='admin@internal'
     password=getpass.getpass("Supply password for user %s: " % username)
 
