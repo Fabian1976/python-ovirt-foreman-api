@@ -167,8 +167,8 @@ class Config:
                 try:
                     vm_list[section]['vm_memory'] = self.config.get(section, 'vm_memory')
                 except:
-                    print "No memory provided. Assumning default of 512 MB"
-                    vm_list[section]['vm_memory'] = 512
+                    print "No memory provided. Assumning default of 1 GB"
+                    vm_list[section]['vm_memory'] = 1024
                 try:
                     vm_list[section]['vm_cpus'] = self.config.get(section, 'vm_cpus')
                 except:
@@ -183,8 +183,8 @@ class Config:
                     vm_list[section]['vm_disks'] = self.config.get(section, 'vm_disks').split(',')
                     vm_list[section]['vm_disks'] = [disk.strip() for disk in vm_list[section]['vm_disks']]
                 except:
-                    print "No disks provided. Assuming single disk of 16 GB"
-                    vm_list[section]['vm_disks'] = ['16']
+                    print "No disks provided. Assuming single disk of 32 GB"
+                    vm_list[section]['vm_disks'] = ['32']
                 try:
                     vm_list[section]['vm_purpose'] = self.config.get(section, 'vm_purpose')
                 except:
@@ -263,7 +263,7 @@ class Config:
                     vm_list[section]['foreman_ptable'] = self.config.get(section, 'foreman_ptable')
                 except:
                     print "No foreman partition table provided. Assuming default 'Kickstart default'"
-                    vm_list[section]['foreman_ptable'] = 'Kickstart default'
+                    vm_list[section]['foreman_ptable'] = 'Kickstart default CMC CIS'
                 try:
                     vm_list[section]['startup_after_creation'] = int(self.config.get(section, 'startup_after_creation'))
                 except:
