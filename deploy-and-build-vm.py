@@ -290,11 +290,11 @@ def createVMs():
             vm_name = vm_info['vm_fqdn']
 
         if vm_info['startup_after_creation']:
+            hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'], vm_info['hypervisor'], vm_info['hypervisor_user'], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
             if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
                 api_ovirt.powerOnGuest(hypervisor_conn, vm_name)
             else:
                 api_vmware.powerOnGuest(hypervisor_conn, vm_name)
-            hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'], vm_info['hypervisor'], vm_info['hypervisor_user'], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
             if vm_info['override_parameters']:
                 print " - Additional parameters provided. This may take a while"
                 api_foreman.createParameters(foreman_conn, vm_info['vm_fqdn'], vm_info['override_parameters'])
