@@ -218,7 +218,7 @@ def getHostId(api, hostName):
 
 def getHostIP(api, hostName):
     try:
-        return str(api.index_hosts(search=hostName)['results'][0]['ip'])
+        return str(api.hosts.show(api.index_hosts(search=hostName)['results'][0]['id'])['ip'])
     except IndexError:
         print "Host %s not found" % hostName
         return -1
