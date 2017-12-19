@@ -27,6 +27,7 @@ These steps are needed for all scripts to work:
 # yum install python-pip gcc python-devel libxml2-devel
 # pip install --upgrade pip
 # pip install ovirt-engine-sdk-python
+# pip install simple-crypt
 ```
 
 The scripts `revert-vm-to-snapshot.py` and `ovirt-list-vm.py` should function now.
@@ -40,13 +41,13 @@ The other scripts also need these packages:
 # pip install pyyaml
 ```
 
-##Installation
+## Installation
 ```bash
 # yum install git
 $ git clone https://github.com/Fabian1976/python-ovirt-foreman-api.git
 ```
 
-##Usage
+## Usage
 All scripts use a custom config class to read the config file. Because of this, all config files must have the same structure and same fields, even if you don't need those fields.
 Based on the script you use the specific fields are used.
 
