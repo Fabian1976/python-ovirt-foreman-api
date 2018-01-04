@@ -49,14 +49,23 @@ def getZookeeperValue(path):
     zk.close()
     return value
 
+def hypervisor_connect(hypervisor_type, hypervisor_host, hypervisor_user, hypervisor_password):
+    if hypervisor_type.lower() in ['ovirt', 'rhev']:
+        return api_ovirt.connectToHost(hypervisor_host, hypervisor_user, hypervisor_password)
+    else:
+        return api_vmware.connectToHost(hypervisor_host, hypervisor_user, hypervisor_password)
+
+def hypervisor_disconnect(api, hypervisor_type):
+    if hypervisor_type.lower() in ['ovirt', 'rhev']:
+        api.close()
+    else:
+        api.disconnect()
+
 def destroyVMs():
     for vm in vm_config.vm_list:
         vm_info = vm_config.vm_list[vm]
         print " - Connect to hypervisor"
-        if vm_info['hypervisor_type'].lower() in ['ovirt', 'rhev']:
-            hypervisor_conn = api_ovirt.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
-        else:
-            hypervisor_conn = api_vmware.connectToHost(vm_info["hypervisor"], vm_info["hypervisor_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
+        hypervisor_conn = hypervisor_connect(vm_info['hypervisor_type'], vm_info['hypervisor'], vm_info['hypervisor_user'], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['hypervisor_password'])))
         #determine how to name VM
         if vm_config.use_fqdn_as_name == 0:
             vm_name = vm
@@ -133,7 +142,7 @@ def destroyVMs():
             break
 
     print " - Disconnect from hypervisor"
-    hypervisor_conn.close()
+    hypervisor_disconnect(hypervisor_conn, vm_info['hypervisor_type'])
     print " - Disconnect from zookeeper"
     api_zookeeper.disconnect(zookeeper_conn)
 
