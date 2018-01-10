@@ -297,7 +297,11 @@ class Config:
                     vm_list[section]['deploy_via_wds'] = int(self.config.get(section, 'deploy_via_wds'))
                 except:
                     vm_list[section]['deploy_via_wds'] = 0
+                try:
+                    vm_list[section]['bootserver'] = int(self.config.get(section, 'bootserver'))
+                except:
+                    if vm_list[section]['deploy_via_wds'] == 1:
+                        print "No bootserver provided. Please provide a valid PXE-boot server. Cannot continue."
+                        sys.exit(99)
 
                 self.vm_list = vm_list
-
-

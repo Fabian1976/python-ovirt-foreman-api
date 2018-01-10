@@ -20,6 +20,8 @@ use_fqdn_as_name = 0
 
 #name of the vm
 [servername]
+#pxe bootserver (only used when deploying through a WDS server)
+bootserver = 127.0.0.1
 osfamily = Linux
 #Domain for host
 vm_domain = localdomain
