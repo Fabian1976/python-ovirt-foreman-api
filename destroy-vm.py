@@ -86,15 +86,15 @@ def destroyVMs():
 #            hypervisor_conn.close()
 #            sys.exit(99)
         print " -", result
-
-        print " - Connect to Foreman"
-        foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['foreman_password'])))
-        result = api_foreman.destroyGuest(foreman_conn, vm_info['vm_fqdn'])
-        if result != "Succesfully removed guest: " + vm_info['vm_fqdn']:
+        if vm_info['osfamily'] == 'linux':
+            print " - Connect to Foreman"
+            foreman_conn = api_foreman.connectToHost(vm_info["foreman"], vm_info["foreman_user"], simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_info['foreman_password'])))
+            result = api_foreman.destroyGuest(foreman_conn, vm_info['vm_fqdn'])
+            if result != "Succesfully removed guest: " + vm_info['vm_fqdn']:
+                print "   - ", result
+                print "Finished unsuccesfully, aborting"
+                sys.exit(99)
             print "   - ", result
-            print "Finished unsuccesfully, aborting"
-            sys.exit(99)
-        print "   - ", result
         print " - Connect to Puppetmaster"
         puppet_conn = puppet.Puppet(host=vm_config.puppetmaster_address, port=vm_config.puppetmaster_port, key_file='./ssl/api-key.pem', cert_file='./ssl/api-cert.pem')
         print "   - Clear certificate of %s" % vm_info['vm_fqdn']
