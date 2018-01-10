@@ -192,41 +192,52 @@ def createVMs():
                 print "Finished unsuccesfully, aborting"
                 sys.exit(99)
             print "   -", result
-            print "   - Fetching IP address to generate OSSec key"
+        # create ossec key in zookeeper
+        print "   - Fetching IP address to generate OSSec key"
+        if vm_info['vm_ipaddress']:
+            ip_address = vm_info['vm_ipaddress']
+        else:
             ip_address = api_foreman.getHostIP(foreman_conn, vm)
-            print "     - IP-address: %s" % ip_address
-            print ""
-            print " - Connect to zookeeper"
-            zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
-            if vm_info['ossec_in_env'] == 1:
-                create_ossec_key(zookeeper_conn, vm_info['vm_fqdn'], vm_info['puppet_environment'], ip_address)
+        print "     - IP-address: %s" % ip_address
+        print ""
+        print " - Connect to zookeeper"
+        zookeeper_conn = api_zookeeper.connectToHost(vm_config.zookeeper_address, vm_config.zookeeper_port)
+        if vm_info['ossec_in_env'] == 1:
+            create_ossec_key(zookeeper_conn, vm_info['vm_fqdn'], vm_info['puppet_environment'], ip_address)
 
-            if vm_info['puppet_server_role'] != '':
-                print " - Creating role in Zookeeper"
-                print "   - server role:", vm_info['puppet_server_role']
-                zk_path = zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn'] + '/roles'
-                result = api_zookeeper.storeValue(zookeeper_conn, zk_path, vm_info['puppet_server_role'])
-                if result != "Succesfully stored value '%s' at path '%s'" % (vm_info['puppet_server_role'], zk_path):
-                    print result
-                    print "Finished unsuccesfully, aborting"
-                    sys.exit(99)
-                print '   -', result
-            print "   - Storing provisioning info"
-            store_provisioning(zookeeper_conn)
-            print " - Disconnect from zookeeper"
-            api_zookeeper.disconnect(zookeeper_conn)
-            if vm_config.freeipa_address != '' and vm_config.freeipa_user != '' and vm_config.freeipa_password != '' and vm_info['ipa_hostgroup'] != '':
-                print " - Connect to freeipa server"
-                freeipa_conn = api_freeipa.connectToHost(vm_config.freeipa_address, vm_config.freeipa_user, simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_config.freeipa_password)))
-                print "   - Registering host '%s' with hostgroup '%s'" % (vm_info['vm_fqdn'], vm_info['ipa_hostgroup'])
-                api_freeipa.add_host_hostgroup(freeipa_conn, vm_info['ipa_hostgroup'], vm_info['vm_fqdn'])
-            if vm_info['deploy_via_wds']:
-                print " - Writing file for WDS to pickup and create DHCP reservation."
-                write_wds_file(vm, vm_info)
-                print " - Waiting for .done file to appear when WDS is done"
-                while not os.path.exists(wds_mount + '/' + vm + '.done'):
-                    time.sleep(5)
-                    print "   - %s/%s.done' still not there" % (wds_mount, vm)
+        # store puppet role in zookeeper
+        if vm_info['puppet_server_role'] != '':
+            print " - Creating role in Zookeeper"
+            print "   - server role:", vm_info['puppet_server_role']
+            zk_path = zk_base_path + '/' + vm_info['puppet_environment'] + '/nodes/' + vm_info['vm_fqdn'] + '/roles'
+            result = api_zookeeper.storeValue(zookeeper_conn, zk_path, vm_info['puppet_server_role'])
+            if result != "Succesfully stored value '%s' at path '%s'" % (vm_info['puppet_server_role'], zk_path):
+                print result
+                print "Finished unsuccesfully, aborting"
+                sys.exit(99)
+            print '   -', result
+
+        #storing provisioning information
+        print "   - Storing provisioning info"
+        store_provisioning(zookeeper_conn)
+        print " - Disconnect from zookeeper"
+        api_zookeeper.disconnect(zookeeper_conn)
+
+        # register host to hostgroup
+        if vm_config.freeipa_address != '' and vm_config.freeipa_user != '' and vm_config.freeipa_password != '' and vm_info['ipa_hostgroup'] != '':
+            print " - Connect to freeipa server"
+            freeipa_conn = api_freeipa.connectToHost(vm_config.freeipa_address, vm_config.freeipa_user, simplecrypt.decrypt(vm_config.salt, base64.b64decode(vm_config.freeipa_password)))
+            print "   - Registering host '%s' with hostgroup '%s'" % (vm_info['vm_fqdn'], vm_info['ipa_hostgroup'])
+            api_freeipa.add_host_hostgroup(freeipa_conn, vm_info['ipa_hostgroup'], vm_info['vm_fqdn'])
+        # write wds file
+        if vm_info['deploy_via_wds']:
+            print " - Writing file for WDS to pickup and create DHCP reservation."
+            write_wds_file(vm, vm_info)
+            print " - Waiting for .done file to appear when WDS is done"
+            while not os.path.exists(wds_mount + '/' + vm + '.done'):
+                time.sleep(5)
+                print "   - %s/%s.done' still not there" % (wds_mount, vm)
+
         if vm_info['vm_exists'] == 1:
             #exit gracefully if VM allready exists. When VM allready exists, the names don't match (detached mode) and below functions don't work
             sys.exit(0)
