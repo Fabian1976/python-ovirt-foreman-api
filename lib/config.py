@@ -226,44 +226,45 @@ class Config:
                 except:
                     print 'Boot after restore not specified. Assuming NO (this will only be used when reverting to a snapshot)'
                     vm_list[section]['boot_after_restore'] = '0'
-                try:
-                    vm_list[section]['foreman'] = self.config.get(section, 'foreman')
-                except:
-                    print "No foreman host provided. Cannot continue"
-                    sys.exit(99)
-                try:
-                    vm_list[section]['foreman_user'] = self.config.get(section, 'foreman_user')
-                except:
-                    print "No foreman user provided. Cannot continue"
-                try:
-                    vm_list[section]['foreman_password'] = self.config.get(section, 'foreman_password')
-                except:
-                    print "No foreman password provided. Please provide one:"
-                    vm_list[section]['foreman_password'] = getpass.getpass("  enter password for foreman " + vm_list[section]['foreman'] + " and user " + vm_list[section]['foreman_user'] + " to continue: ")
-                try:
-                    vm_list[section]['foreman_hostgroup'] = self.config.get(section, 'foreman_hostgroup')
-                except:
-                    print "No foreman hostgroup provided. Assuming default of 'CentOS7 Minimal'"
-                    vm_list[section]['foreman_hostgroup'] = 'CentOS7 Minimal'
-                try:
-                    vm_list[section]['foreman_organization'] = self.config.get(section, 'foreman_organization')
-                except:
-                    print "No foreman organization provided. Assumning default of 'CMC'"
-                    vm_list[section]['foreman_organization'] = 'CMC'
-                try:
-                    vm_list[section]['foreman_location'] = self.config.get(section, 'foreman_location')
-                except:
-                    print "No foreman location provided. Cannot continue"
-                    sys.exit(99)
-                try:
-                    vm_list[section]['foreman_subnet'] = self.config.get(section, 'foreman_subnet')
-                except:
-                    print "No foreman subnet provided. You can still access the VM, but only through the concole"
-                try:
-                    vm_list[section]['foreman_ptable'] = self.config.get(section, 'foreman_ptable')
-                except:
-                    print "No foreman partition table provided. Assuming default 'Kickstart default'"
-                    vm_list[section]['foreman_ptable'] = 'Kickstart default CMC CIS'
+                if vm_list[section]['osfamily'] == 'linux':
+                    try:
+                        vm_list[section]['foreman'] = self.config.get(section, 'foreman')
+                    except:
+                        print "No foreman host provided. Cannot continue"
+                        sys.exit(99)
+                    try:
+                        vm_list[section]['foreman_user'] = self.config.get(section, 'foreman_user')
+                    except:
+                        print "No foreman user provided. Cannot continue"
+                    try:
+                        vm_list[section]['foreman_password'] = self.config.get(section, 'foreman_password')
+                    except:
+                        print "No foreman password provided. Please provide one:"
+                        vm_list[section]['foreman_password'] = getpass.getpass("  enter password for foreman " + vm_list[section]['foreman'] + " and user " + vm_list[section]['foreman_user'] + " to continue: ")
+                    try:
+                        vm_list[section]['foreman_hostgroup'] = self.config.get(section, 'foreman_hostgroup')
+                    except:
+                        print "No foreman hostgroup provided. Assuming default of 'CentOS7 Minimal'"
+                        vm_list[section]['foreman_hostgroup'] = 'CentOS7 Minimal'
+                    try:
+                        vm_list[section]['foreman_organization'] = self.config.get(section, 'foreman_organization')
+                    except:
+                        print "No foreman organization provided. Assumning default of 'CMC'"
+                        vm_list[section]['foreman_organization'] = 'CMC'
+                    try:
+                        vm_list[section]['foreman_location'] = self.config.get(section, 'foreman_location')
+                    except:
+                        print "No foreman location provided. Cannot continue"
+                        sys.exit(99)
+                    try:
+                        vm_list[section]['foreman_subnet'] = self.config.get(section, 'foreman_subnet')
+                    except:
+                        print "No foreman subnet provided. You can still access the VM, but only through the concole"
+                    try:
+                        vm_list[section]['foreman_ptable'] = self.config.get(section, 'foreman_ptable')
+                    except:
+                        print "No foreman partition table provided. Assuming default 'Kickstart default'"
+                        vm_list[section]['foreman_ptable'] = 'Kickstart default CMC CIS'
                 try:
                     vm_list[section]['startup_after_creation'] = int(self.config.get(section, 'startup_after_creation'))
                 except:
