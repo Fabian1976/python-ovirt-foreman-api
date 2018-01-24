@@ -62,7 +62,7 @@ def create_ossec_key(zookeeper_conn, hostname, puppet_environment, ip_address):
         agent_id, nodeStats = api_zookeeper.getValue(zookeeper_conn, ossecserver_path + '/client-keys/' + hostname + '/id')
         print "Host reeds bekend in OSSec"
     except kazoo.exceptions.NoNodeError:
-        print "   - Fetching moest recent ossec client-num"
+        print "   - Fetching most recent ossec client-num"
         agent_id, nodeStats = api_zookeeper.getValue(zookeeper_conn, ossecserver_path + '/client-num')
         agent_id = int(agent_id)
         print "     - %s" % agent_id
