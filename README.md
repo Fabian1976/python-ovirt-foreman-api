@@ -90,4 +90,4 @@ On the puppetmaster modify this file `/etc/puppetlabs/puppetserver/conf.d/auth.c
         },
 ```
 
-All should be funcitoning now.
+All should be functioning now.
