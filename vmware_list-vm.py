@@ -7,7 +7,7 @@ import api_vmware
 
 def main():
     host="man-ms018.recon.man"
-    username="b-fvdhoeven"
+    username=raw_input("Supply username: ")
     password=getpass.getpass("Supply password for user %s: " % username)
 
     vmware_conn = api_vmware.connectToHost(host, username, password)
