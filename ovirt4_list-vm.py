@@ -5,7 +5,7 @@ import getpass
 from time import sleep
 
 def main():
-    url = 'https://rhevm01.infoplus-mgt.ris/ovirt-engine/api'
+    url = 'https://ovirtm01.cmc-mgt.lan/ovirt-engine/api'
     username = 'admin@internal'
     password = getpass.getpass("Supply password for user %s: " % username)
 
