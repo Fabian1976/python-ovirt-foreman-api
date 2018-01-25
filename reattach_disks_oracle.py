@@ -4,12 +4,10 @@ from ovirtsdk.api import API
 from ovirtsdk.xml import params
 from time import sleep
 
-ovirt_host = 'poc-ovirtm1.infoplus-ot.ris'
-#guest_name = 'puppetdev-remy01.core.cmc.lan'
-#attach_to = 'puppetdev-remy02.core.cmc.lan'
-guest_name = 'puppetdev-johnpaul01.core.cmc.lan'
-attach_to = 'puppetdev-johnpaul02.core.cmc.lan'
-datastore = 'poc-datastore1'
+ovirt_host = '<ovirt-manager fqdn>'
+guest_name = '<master-node>'
+attach_to = '<slave node>'
+datastore = '<datastore>'
 
 disks = {}
 disk = {}
@@ -33,7 +31,7 @@ disks['systemdg_004'] = disk
 disk = None
 
 apiurl = "https://" + ovirt_host + "/api"
-api = API(url=apiurl,username='admin@internal',password='redhat',insecure=True)
+api = API(url=apiurl,username='admin@internal',password='<password>',insecure=True)
 
 print "Reattaching disks to VM: %s" % guest_name
 for disk in disks:
